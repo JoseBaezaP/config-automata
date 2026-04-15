@@ -30,16 +30,16 @@ CLI interactivo para instalar y mantener actualizado el ecosistema de agentes y 
 
 ## Instalación
 
-No requiere instalación previa. Ejecuta directamente con `npx`:
+No requiere instalación previa. Ejecuta directamente desde el repositorio con `npx`:
 
 ```bash
-npx tba-agent
+npx github:jbaeza_hebgit/super-automata
 ```
 
 O si prefieres instalar globalmente:
 
 ```bash
-npm install -g tba-agent
+npm install -g github:jbaeza_hebgit/super-automata
 tba-agent
 ```
 
@@ -49,16 +49,16 @@ tba-agent
 
 | Comando | Descripción |
 |---|---|
-| `npx tba-agent` | Instalar TBA Agent interactivamente |
-| `npx tba-agent install` | Instalar TBA Agent interactivamente |
-| `npx tba-agent update` | Actualizar una instalación existente |
-| `npx tba-agent version` | Mostrar versión instalada y disponible |
+| `npx github:jbaeza_hebgit/super-automata` | Instalar TBA Agent interactivamente |
+| `npx github:jbaeza_hebgit/super-automata install` | Instalar TBA Agent interactivamente |
+| `npx github:jbaeza_hebgit/super-automata update` | Actualizar una instalación existente |
+| `npx github:jbaeza_hebgit/super-automata version` | Mostrar versión instalada y disponible |
 
 ---
 
 ## Flujo de instalación
 
-Al ejecutar `npx tba-agent install`, el CLI guía al usuario paso a paso:
+Al ejecutar `npx github:jbaeza_hebgit/super-automata install`, el CLI guía al usuario paso a paso:
 
 ### 1. Selección de AI assistant
 
@@ -236,7 +236,7 @@ Este archivo está enlazado con `generate-wiki/config/productos.json` mediante u
 Para actualizar los agentes y skills a la última versión manteniendo tu configuración:
 
 ```bash
-npx tba-agent update
+npx github:jbaeza_hebgit/super-automata update
 ```
 
 El comando lee el manifest de instalación existente (assistant y scope) y sobreescribe solo los archivos de agentes y skills, sin tocar tu configuración de PAT ni productos.
@@ -244,14 +244,14 @@ El comando lee el manifest de instalación existente (assistant y scope) y sobre
 Para verificar si hay una actualización disponible:
 
 ```bash
-npx tba-agent version
+npx github:jbaeza_hebgit/super-automata version
 ```
 
 ```
 Version instalada:   1.0.0
 Version disponible:  1.1.0
 
-Actualización disponible! Corre `npx tba-agent update` para actualizar.
+Actualización disponible! Corre `npx github:jbaeza_hebgit/super-automata update` para actualizar.
 ```
 
 ---
