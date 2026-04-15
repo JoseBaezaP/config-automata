@@ -1,0 +1,170 @@
+{
+  "architectureType": "hexagonal",
+  "detectionMethod": "explicit-skill",
+  "confidence": 0.95,
+  "skillPath": "claude/skills/hexagonal-architect/SKILL.md",
+  "referencePaths": [
+    "claude/skills/hexagonal-architect/references/project/domain-layer.md",
+    "claude/skills/hexagonal-architect/references/project/application-layer.md",
+    "claude/skills/hexagonal-architect/references/project/infrastructure-layer.md",
+    "claude/skills/hexagonal-architect/references/project/folder-structure.md",
+    "claude/skills/hexagonal-architect/references/project/naming-conventions.md",
+    "claude/skills/hexagonal-architect/references/project/testing-guidelines.md"
+  ],
+  "layerRules": {
+    "domain": {
+      "path": "src/modules/{module}/domain/",
+      "subfolders": ["entities", "value-objects", "contracts", "errors"],
+      "canImportFrom": ["domain"],
+      "restrictions": ["Zero framework dependencies", "Zero node_modules imports"]
+    },
+    "application": {
+      "path": "src/modules/{module}/application/",
+      "subfolders": ["use-cases", "hooks", "presentation"],
+      "canImportFrom": ["domain", "application"],
+      "restrictions": ["No infrastructure imports"]
+    },
+    "infrastructure": {
+      "path": "src/modules/{module}/infrastructure/",
+      "subfolders": ["repositories", "services"],
+      "canImportFrom": ["domain", "application", "infrastructure"],
+      "restrictions": []
+    }
+  },
+  "namingConventions": {
+    "fileNaming": "kebab-case",
+    "entityPattern": "{name}.ts",
+    "valueObjectPattern": "{name}.ts",
+    "interfacePattern": "{name}.interface.ts",
+    "dtoPattern": "{name}.dto.ts",
+    "errorPattern": "{name}.error.ts",
+    "useCasePattern": "{action}-{entity}.use-case.ts",
+    "hookPattern": "use-{feature}.hook.ts",
+    "viewPattern": "{name}.view.tsx",
+    "repositoryPattern": "{name}.repository.ts",
+    "servicePattern": "{provider}-{name}.service.ts",
+    "componentPattern": "{name}/index.tsx",
+    "testPattern": "{source-name}.test.ts"
+  },
+  "folderStructure": {
+    "moduleTemplate": "src/modules/{name}/",
+    "routingTemplate": "src/app/{route}/",
+    "testTemplate": "src/tests/modules/{module}/{layer}/",
+    "sharedModule": "src/modules/shared/",
+    "uiComponents": "src/components/ui/"
+  },
+  "testingRules": {
+    "framework": "jest",
+    "componentFramework": "@testing-library/react",
+    "e2eFramework": null,
+    "coverageTarget": "90%",
+    "testLocation": "src/tests/modules/{module}/{layer}/",
+    "patterns": {
+      "domain": "Pure unit tests, no mocks, no external dependencies",
+      "useCase": "Mock all repositories/services, test orchestration + DTO conversion",
+      "hook": "renderHook + mocked use cases, test loading/error/success states",
+      "component": "@testing-library/react + user-event, test user flows not implementation"
+    },
+    "existingTestExamples": [
+      "src/tests/modules/stores/domain/entities/store.test.ts"
+    ]
+  },
+  "criticalRules": [
+    "Domain is pure - zero framework dependencies",
+    "All entities use _entity schema pattern: private readonly _entity: ISchema",
+    "One use case = one execute() implementing IUseCase<TInput, TOutput>",
+    "Max 3 dependencies per constructor",
+    "Max 300 lines per file",
+    "I-prefix on all interfaces, I-prefix + DTO-suffix on all DTOs",
+    "kebab-case for all file names",
+    "No submodules - modules are flat",
+    "External libs need interfaces in shared/domain/contracts/",
+    "Entities return DTOs - never expose entities outside domain"
+  ],
+  "moduleCreationOrder": [
+    "domain",
+    "infrastructure",
+    "application",
+    "presentation",
+    "routing",
+    "tests"
+  ],
+  "dependencyRule": "Infrastructure -> Application -> Domain (always inward)",
+  "antiPatterns": [
+    "Anemic Domain Model - entities must contain business logic",
+    "Leaking Infrastructure - domain must not import framework libs",
+    "God Use Case - one class = one execute()",
+    "Direct shadcn Import - use presentation/ui/ wrappers",
+    "Fat Constructor - max 3 dependencies",
+    "Cross-Module Sharing - share via IDs and DTOs only",
+    "Business Logic in Views - move to entities or use cases"
+  ],
+  "techStack": {
+    "framework": "Next.js 15 (App Router)",
+    "language": "TypeScript (strict)",
+    "ui": "shadcn/ui + Tailwind CSS",
+    "stateManagement": "React hooks with DI",
+    "orm": "Prisma",
+    "httpClient": "fetch / custom IHttpClient"
+  },
+  "projectContext": {
+    "projectStructure": "src/modules/ (hexagonal modules), src/app/ (Next.js routes), src/components/ui/ (shadcn wrappers), src/tests/ (mirror structure)",
+    "stackTecnologico": {
+      "runtime": "Node.js 20",
+      "framework": "Next.js 15 (App Router)",
+      "language": "TypeScript 5.x (strict)",
+      "database": "PostgreSQL",
+      "orm": "Prisma",
+      "testing": "Jest + React Testing Library",
+      "build": "Turbopack",
+      "keyLibraries": ["shadcn/ui", "tailwindcss", "zod", "react-hook-form"]
+    },
+    "ui": {
+      "framework": "React 19",
+      "library": "shadcn/ui + Tailwind CSS",
+      "components": ["src/components/ui/*", "src/modules/*/application/presentation/*"],
+      "stateManagement": "React hooks with DI",
+      "styling": "CSS Modules (style.module.scss) + 7-1 SASS",
+      "routing": "Next.js App Router (src/app/)"
+    },
+    "apis": [
+      {
+        "module": "stores",
+        "endpoint": "/api/stores",
+        "methods": ["GET", "POST", "PATCH"],
+        "description": "CRUD de tiendas con filtros por zipCode, city, state"
+      }
+    ],
+    "database": {
+      "type": "PostgreSQL",
+      "orm": "Prisma",
+      "migrationsPath": "prisma/migrations/",
+      "entities": [
+        { "name": "Store", "path": "src/modules/stores/domain/entities/store.ts" }
+      ],
+      "relationships": ["Store 1:N Capacity", "Store 1:N BlackoutDate"]
+    },
+    "integrations": [
+      {
+        "service": "HEB Cart Services API",
+        "type": "REST",
+        "baseUrl": "https://heb-cart-services.styrk.io/api",
+        "client": "IHttpClient wrapper"
+      }
+    ],
+    "testing": {
+      "framework": "Jest",
+      "componentFramework": "@testing-library/react",
+      "testFilesCount": 45,
+      "coverageCommand": "npm test -- --coverage",
+      "exampleTestPaths": ["src/tests/modules/stores/domain/entities/store.test.ts"]
+    },
+    "cicd": {
+      "docker": true,
+      "pipeline": "Azure Pipelines",
+      "stages": ["build", "test", "deploy"],
+      "environments": ["dev", "staging", "production"]
+    },
+    "notes": "Soft-delete pattern. Multi-tenant via tenant header. Pagination via cursor."
+  }
+}

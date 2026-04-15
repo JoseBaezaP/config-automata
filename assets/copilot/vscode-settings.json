@@ -1,0 +1,16 @@
+{
+  // Directorios donde Copilot busca agentes (.agent.md)
+  "chat.agentFilesLocations": {
+    ".github/agents": true
+  },
+
+  // Habilitar subagentes anidados si se necesita (max 5 niveles)
+  // "chat.subagents.allowInvocationsFromSubagents": false,
+
+  // Instruccion global para Copilot en este workspace
+  "github.copilot.chat.codeGeneration.instructions": [
+    {
+      "text": "Este workspace usa el sistema HEB-Automata. Los agentes TBA estan disponibles en .github/agents/ y los skills en .github/skills/. Usa el agente tba-orchestrator como punto de entrada principal."
+    }
+  ]
+}

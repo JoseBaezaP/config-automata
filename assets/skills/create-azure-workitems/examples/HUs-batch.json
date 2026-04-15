@@ -1,0 +1,78 @@
+{
+  "DatosGenerales": {
+    "epicTitle": "Topsort Sponsored Brands Integration",
+    "epicDescription": "<p>Integración con Topsort Sponsored Brands para...</p>",
+    "featureTitle": "Topsort Sponsored Brands Integration",
+    "featureDescription": "<p>Feature principal para la integración...</p>",
+    "areaPath": "Dev - Product and Technology\\Fulfillment IMS",
+    "productType": "DIF",
+    "initiativeName": "Topsort-Sponsored-Brands"
+  },
+  "HistoriasDeUsuario": [
+    {
+      "Id": "HU-001",
+      "Titulo": "[FRONT] Visualizar campañas de Sponsored Brands",
+      "Descripcion": "<p>Como usuario quiero visualizar...</p>",
+      "Detalle": "<p>Detalle técnico de la implementación...</p>",
+      "CriteriosDeAceptacion": "<p>1. Se visualizan las campañas<br>2. Se muestran los métricas...</p>",
+      "SugerenciaCodigo": "const campaigns = await topsortAPI.getCampaigns();",
+      "Tareas": [
+        {
+          "Tipo": "BACK",
+          "Titulo": "[BACK] Preparar estructuras de datos",
+          "Detalle": "<p>Crear modelos y DTOs para...</p>",
+          "SugerenciaCodigo": "interface Campaign { id: string; name: string; }"
+        },
+        {
+          "Tipo": "FRONT",
+          "Titulo": "[FRONT] Crear componente de lista",
+          "Detalle": "<p>Componente React para mostrar...</p>"
+        },
+        {
+          "Tipo": "INTEG",
+          "Titulo": "[INTEG] Integración con API Topsort",
+          "Detalle": "<p>Consumir endpoint /campaigns...</p>"
+        },
+        {
+          "Tipo": "QA",
+          "Titulo": "[QA] - Escenarios de prueba",
+          "Detalle": "<p>Validar: listado vacío, error, carga...</p>"
+        }
+      ]
+    },
+    {
+      "Id": "HU-002",
+      "Titulo": "[FRONT] Crear nueva campaña de Sponsored Brands",
+      "Descripcion": "<p>Como usuario quiero crear...</p>",
+      "Detalle": "<p>Detalle técnico...</p>",
+      "CriteriosDeAceptacion": "<p>1. Se puede crear campaña<br>2. Se validan campos...</p>",
+      "Tareas": [
+        {
+          "Tipo": "BACK",
+          "Titulo": "[BACK] Endpoint para crear campaña",
+          "Detalle": "<p>POST /campaigns con validaciones...</p>"
+        },
+        {
+          "Tipo": "FRONT",
+          "Titulo": "[FRONT] Formulario de creación",
+          "Detalle": "<p>Formulario con validaciones...</p>"
+        },
+        {
+          "Tipo": "QA",
+          "Titulo": "[QA] - Validaciones de formulario",
+          "Detalle": "<p>Probar campos requeridos, formatos...</p>"
+        }
+      ]
+    }
+  ]
+}
+  /*
+  Paths del Wiki (construidos usando productType y initiativeName):
+
+  TR:   /TR´S TBA/DIF/Topsort-Sponsored-Brands
+  IFAO: /TR´S TBA/DIF/Topsort-Sponsored-Brands/IFAO
+
+  Nota:
+  - productType viene de productos.json[projectKey].product_type
+  - initiativeName es el nombre de la iniciativa (usado en el path)
+*/

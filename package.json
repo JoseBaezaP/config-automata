@@ -1,0 +1,35 @@
+{
+  "name": "tba-agent",
+  "version": "1.0.0",
+  "description": "CLI interactivo para instalar TBA Agent en tu AI assistant",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "tba-agent": "./bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "assets/"
+  ],
+  "tbaAgent": {
+    "githubRepo": "JoseBaezaP/TBA-Orchestrator",
+    "note": "Cambia githubRepo cuando el CLI tenga su propio repo dedicado"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.9",
+    "figlet": "^1.8",
+    "fs-extra": "^11.2",
+    "picocolors": "^1.1"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7",
+    "jest": "^29.7"
+  },
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage"
+  }
+}

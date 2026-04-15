@@ -1,0 +1,14 @@
+# Tests y cobertura
+test/
+coverage/
+
+# Config files con credenciales (NUNCA publicar)
+assets/**/config/azure-pat.js
+
+# Archivos de sistema
+.DS_Store
+**/.DS_Store
+
+# Dev
+*.tgz
+node_modules/

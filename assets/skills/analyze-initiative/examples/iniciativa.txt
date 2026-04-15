@@ -1,0 +1,199 @@
+Nombre de la iniciativa: Mejoras de gestión de tiendas
+
+Detalle de tienda y creación:
+- ST32 - Campo active en detalle
+Como Especialista de Compensaciones y Estructura
+Quiero ver y editar el campo active en el detalle de la tienda
+Para poder activar o desactivar tiendas desde el panel administrativo
+Prioridad: MUST
+Criterios de aceptación:
+1. El campo active debe aparecer en el detalle de la tienda
+2. Debe ser un checkbox que permita activar/desactivar
+3. El valor se debe enviar a los endpoints correspondientes
+4. El atributo en el JSON es active
+Nota: Este campo afecta la visibilidad de la tienda en la aplicación
+
+- ST33 - Checkbox para atributo cat
+Como Especialista de Compensaciones y Estructura
+Quiero tener un checkbox para cambiar el atributo cat a true o false
+Para controlar una nueva funcionalidad de categorización
+Prioridad: MUST
+Criterios de aceptación:
+1. Agregar un nuevo checkbox en el detalle de la tienda
+2. El valor por defecto es false
+3. Permite cambiar a true o false
+4. El atributo en el JSON es cat
+
+- ST34 - Cambio de texto de tiempo
+Como Especialista de Compensaciones y Estructura
+Quiero cambiar el texto que dice "Tiempo de preparación por tienda (minutos)" a "horas"
+Para reflejar correctamente la unidad de medida en la interfaz
+Prioridad: SHOULD
+Criterios de aceptación:
+1. El texto "Tiempo de preparación por tienda (minutos)" debe cambiarse a "(horas)"
+2. El cambio debe aplicarse en todos los lugares donde aparece este texto
+
+- ST35 - Atributo reference en detalle
+Como Especialista de Compensaciones y Estructura
+Quiero que el atributo reference esté en el detalle de la tienda como un input
+Para poder visualizar y editar este atributo
+Prioridad: MUST
+Criterios de aceptación:
+1. El atributo reference debe aparecer como un input en el detalle
+2. Debe permitir editar el valor
+3. El valor se debe guardar correctamente en el JSON
+
+Modulo de blackout days:
+- ST36 - Cambio en estructura de blackoutDates
+Como Desarrollador backend
+Quiero actualizar el parsing de blackoutDates para usar from/to en lugar de start/end
+Para adaptarse al nuevo formato del endpoint de tiendas
+Prioridad: MUST
+Criterios de aceptación:
+1. El array blackoutDates debe usar atributos from y to
+2. Ya no debe usar start y end
+3. El cambio debe ser retrocompatible con datos existentes
+
+Capacidad por hora:
+- ST37 - Rediseño total de capacity
+Como Desarrollador fullstack
+Quiero rediseñar completamente el módulo de capacity por hora
+Para soportar la nueva estructura de days + hours con lógica automática de time_slots
+Prioridad: MUST
+Criterios de aceptación:
+1. Rediseño total de capacity implementado
+2. Nueva estructura days[] + hours[] en lugar de capacity array
+3. Cada day tiene hours[] con from, to, quantity, shippingFee
+4. Lógica automática para generar time_slot siguiente
+5. Botón para añadir nuevo time_slot
+6. Import/export masivo de time_slots
+7. Eliminar input "Maximo de ordenes por hora"
+8. Eliminar sección de costo de envío
+Nota: La lógica para calcular "to" es: if from is 9:00, then to is 9:59
+
+- ST38 - Lógica automática para time_slots
+Como Usuario final
+Quiero que el sistema calcule automáticamente el siguiente time_slot
+Para no tener que ingresar los rangos de horas manualmente
+Prioridad: SHOULD
+Criterios de aceptación:
+1. Si el último time_slot es de 9:00-9:59, el siguiente debe ser 10:00-10:59
+2. El sistema debe pre-calcular el valor de "from" al añadir un nuevo slot
+3. El valor de "to" debe ser el último minuto de la hora "from"
+
+- ST39 - Import/export de time_slots
+Como Administrador de tiendas
+Quiero cargar de forma masiva varios time_slots desde un template
+Para no tener que crear cada time_slot manualmente
+Prioridad: SHOULD
+Criterios de aceptación:
+1. Botón para descargar template de time_slots
+2. Botón para importar time_slots desde archivo Excel o CSV
+3. Avisar al usuario que todos los datos existentes se sustituirán por los nuevos
+4. Confirmar con el usuario antes de hacer la conversión a JSON
+5. Validar formato del template antes de importar
+
+- ST40 - Eliminar max ordenes
+Como Administrador de tiendas
+Quiero eliminar el input "Maximo de ordenes por hora"
+Para eliminar campos que ya no se usan
+Prioridad: MUST
+Criterios de aceptación:
+1. El input "Maximo de ordenes por hora" debe eliminarse de la interfaz
+2. Esta sección debe eliminarse completamente
+
+- ST41 - Eliminar costo de envío
+Como Administrador de tiendas
+Quiero eliminar la sección de costo de envío
+Para que el costo de envío ahora esté a nivel time_slot
+Prioridad: MUST
+Criterios de aceptación:
+1. La sección completa de costo de envío debe eliminarse
+2. El shippingFee ahora está en cada time_slot
+
+Pantalla de login:
+- ST42 - Mejoras de contraste en login
+Como Usuario final
+Quiero mejorar el contraste en la pantalla de login
+Para facilitar la identificación y lectura
+Prioridad: SHOULD
+Criterios de aceptación:
+1. Aumentar el contraste del ícono que está sobre el título (no usar rojo sobre rojo)
+2. Ajustar el color del texto de copyright para mejorar la legibilidad
+3. Asegurar identificación inmediata del logo de HEB
+
+Pantalla de gestión de tiendas:
+- ST43 - Eliminar cards superiores
+Como Usuario final
+Quiero eliminar todas las cards en la parte superior del listado de tiendas
+Para simplificar la interfaz
+Prioridad: SHOULD
+Criterios de aceptación:
+1. Eliminar todas las cards que se encuentran en la parte superior del listado general
+2. El listado de tiendas debe mostrarse directamente sin cards previas
+
+Listado general de órdenes:
+- ST44 - Íconos de filtros repetidos
+Como Usuario final
+Quiero que los íconos de los filtros no se repitan
+Para identificar mejor cada filtro
+Prioridad: SHOULD
+Criterios de aceptación:
+1. Los íconos de Estado y Método de pago no deben aparecer repetidos varias veces
+2. Debe haber variaciones de íconos o etiquetas visibles para diferenciar cada filtro inmediatamente
+3. El usuario debe poder identificar qué representa cada filtro inmediatamente
+Nota de UX: Después se mandarían los íconos correspondientes para los filtros donde había unos íconos que no tenían mucho sentido
+
+Tablas de toda la aplicación:
+- ST45 - Hover en filas de tabla
+Como Usuario final
+Quiero que el hover en las filas de la tabla indique claramente si hay acción
+Para evitar confusión
+Prioridad: SHOULD
+Criterios de aceptación:
+1. Si la fila tiene acción disponible, mostrar hover indicativo
+2. Si la fila NO tiene acción disponible, NO mostrar hover interactivo
+3. O conectar cada fila a su vista detallada
+
+Modulo del listado general de transacciones:
+- ST46 - Buscador de ID
+Como Usuario final
+Quiero que el input de "Buscar Id" tenga debounce
+Para que la búsqueda se realice una vez el usuario haya terminado de escribir
+Prioridad: SHOULD
+Criterios de aceptación:
+1. Remover el cuadro blanco donde se encuentra el input
+2. Dejar solo el input como en los otros módulos
+3. Implementar debounce de 500ms o 1 segundo
+4. La búsqueda se debe realizar automáticamente después del debounce
+
+Sección del carrito:
+- ST47 - Feedback visual en "Buscar por"
+Como Usuario final
+Quiero ver feedback visual al pasar el cursor sobre "Buscar por"
+Para identificar que es interactivo
+Prioridad: SHOULD
+Criterios de aceptación:
+1. El botón "Buscar por" debe mostrar hover al pasar el cursor
+2. El usuario debe poder identificar que hay opciones adicionales o menú desplegable
+
+- ST48 - Hover en opciones del dropdown
+Como Usuario final
+Quiero ver hover al seleccionar opciones del dropdown
+Para tener feedback visual
+Prioridad: SHOULD
+Criterios de aceptación:
+1. Cada opción del dropdown debe mostrar hover o estado de selección
+2. El usuario debe saber qué opción está por seleccionar
+3. Debe haber retroalimentación visual del movimiento del cursor
+
+Sidebar de la aplicación:
+- ST49 - Texto del sidebar
+Como Usuario final
+Quiero que el sidebar muestre el texto correcto
+Para reflejar la identidad de la aplicación
+Prioridad: MUST
+Criterios de aceptación:
+1. Borrar el texto "Enterprise" en la parte superior del sidebar
+2. Cambiar el texto "Admin Ecomtools" a "Ecommadmin"
+3. Agregar el ícono de la aplicación al lado del texto "Ecommadmin"

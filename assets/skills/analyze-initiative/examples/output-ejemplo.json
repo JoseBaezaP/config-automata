@@ -1,0 +1,106 @@
+{
+  "nombreIniciativa": "consulta-tienda-por-cp",
+  "formatoEntrada": "PDF",
+  "grupos": [
+    {
+      "id": "GRUPO-001",
+      "nombre": "Busqueda de tienda por codigo postal",
+      "descripcion": "Permitir buscar tiendas por CP mostrando nombre, direccion, servicios disponibles y ubicacion en mapa",
+      "elementos": [1, 2],
+      "confianza": 0.95,
+      "aprobado": true,
+      "escenariosPrueba": [
+        {
+          "id": "ESC-001",
+          "titulo": "Busqueda exitosa con 1 tienda activa",
+          "tipo": "happy-path",
+          "gherkin": "Dado que existe una tienda activa con cobertura para el CP 25280\nCuando el usuario ingresa el CP y presiona buscar\nEntonces se muestra la tienda con nombre, direccion, servicios (Delivery/Pick Up) y ubicacion en mapa"
+        },
+        {
+          "id": "ESC-002",
+          "titulo": "CP con cobertura en 2 tiendas",
+          "tipo": "happy-path",
+          "gherkin": "Dado que existen 2 tiendas activas con cobertura para el CP 25280\nCuando el usuario busca por ese CP\nEntonces se muestran ambas tiendas en paneles separados con su mapa correspondiente"
+        },
+        {
+          "id": "ESC-003",
+          "titulo": "CP sin cobertura",
+          "tipo": "edge-case",
+          "gherkin": "Dado que no existe ninguna tienda activa con cobertura para el CP ingresado\nCuando el usuario busca por ese CP\nEntonces se muestra el mensaje 'No existe tienda que atienda este CP' con recomendacion para reintentar"
+        },
+        {
+          "id": "ESC-004",
+          "titulo": "CP con formato invalido",
+          "tipo": "error",
+          "gherkin": "Dado que el usuario esta en la pantalla de busqueda\nCuando ingresa un CP con menos de 5 digitos o con caracteres no numericos\nEntonces se muestra un error de formato indicando que debe ser 5 digitos numericos"
+        },
+        {
+          "id": "ESC-005",
+          "titulo": "Reintento de busqueda sin recarga",
+          "tipo": "happy-path",
+          "gherkin": "Dado que el usuario ya realizo una busqueda por CP\nCuando cambia el valor del campo CP y busca de nuevo\nEntonces se actualiza el panel de datos y el mapa sin recargar la pagina completa"
+        }
+      ]
+    },
+    {
+      "id": "GRUPO-002",
+      "nombre": "Visualizacion de tienda en mapa",
+      "descripcion": "Mostrar ubicacion exacta de la tienda en un mapa interactivo con marcador",
+      "elementos": [3],
+      "confianza": 0.90,
+      "aprobado": true,
+      "escenariosPrueba": [
+        {
+          "id": "ESC-006",
+          "titulo": "Mapa centrado en tienda encontrada",
+          "tipo": "happy-path",
+          "gherkin": "Dado que se encontro una tienda para el CP consultado\nCuando se muestra el resultado\nEntonces el mapa se centra automaticamente en las coordenadas de la tienda con un marcador (pin)"
+        },
+        {
+          "id": "ESC-007",
+          "titulo": "Tienda sin coordenadas geograficas",
+          "tipo": "edge-case",
+          "gherkin": "Dado que la tienda encontrada no tiene coordenadas geograficas configuradas (latitud o longitud faltante)\nCuando se intenta mostrar el mapa\nEntonces el mapa no se renderiza y se muestra el mensaje 'La tienda no cuenta con coordenadas geograficas configuradas'"
+        },
+        {
+          "id": "ESC-008",
+          "titulo": "Actualizacion de mapa al buscar nuevo CP",
+          "tipo": "happy-path",
+          "gherkin": "Dado que el usuario ya tiene un resultado con mapa visible\nCuando ingresa un nuevo CP y busca\nEntonces el mapa se actualiza sin recargar la pagina mostrando la nueva ubicacion"
+        }
+      ]
+    }
+  ],
+  "elementos": [
+    {
+      "id": 1,
+      "titulo": "Busqueda por CP",
+      "descripcion": "Como liveops\nQuiero ingresar un CP\nPara conocer la tienda que atiende un determinado codigo postal",
+      "criteriosAceptacion": "1. Si existe al menos una tienda activa con cobertura para el CP, se muestra la tienda asignada.\n2. Si no existe cobertura, mostrar estado 'No existe tienda que atienda este CP' con recomendacion.\n3. El mapa centra un marcador en las coordenadas de la tienda.\n4. La direccion se muestra como: Calle + Numero, Colonia, Ciudad, Estado.\n5. Los servicios disponibles se presentan como etiquetas (Delivery / Pick Up).",
+      "notas": "",
+      "notasTecnicas": "Endpoint GET /stores?zipCode=XXXXX retorna array de tiendas con: active, deliveryType, location.geoCoordinates, zipCodeCoverage, name, id, reference",
+      "reglasNegocio": "RN1: Formato CP 5 digitos numericos, permitir ceros a la izquierda.\nRN2: Excluir tiendas con active=false.\nRN3: Cobertura determinada por zipCodeCoverage.\nRN4: Mostrar deliveryType disponibles.",
+      "prioridad": "MUST"
+    },
+    {
+      "id": 2,
+      "titulo": "Reintento sin recarga",
+      "descripcion": "Como usuario\nQuiero probar otro CP en el mismo flujo\nPara no perder contexto",
+      "criteriosAceptacion": "1. El campo CP permanece editable.\n2. Al buscar de nuevo, se actualiza panel y mapa sin recargar la pagina completa.",
+      "notas": "",
+      "notasTecnicas": "",
+      "reglasNegocio": "",
+      "prioridad": "MUST"
+    },
+    {
+      "id": 3,
+      "titulo": "Visualizar tienda en mapa",
+      "descripcion": "Como usuario del sistema\nQuiero visualizar en un mapa la ubicacion exacta de la tienda que atiende el codigo postal ingresado\nPara identificar de manera clara donde se encuentra la tienda",
+      "criteriosAceptacion": "1. Mapa centrado en coordenadas de la tienda (latitude, longitude).\n2. Marcador (pin) unico sobre la posicion geografica.\n3. Actualizacion automatica sin recargar la pagina.\n4. Si CP sin cobertura, mapa no se muestra y queda estado vacio con mensaje.",
+      "notas": "",
+      "notasTecnicas": "Usar location.geoCoordinates.latitude y location.geoCoordinates.longitude del response de la API",
+      "reglasNegocio": "1. Tienda debe tener valor valido en geoCoordinates. Si falta latitud o longitud, no renderizar mapa.\n2. Mapa muestra una sola tienda por CP (2 mapas si hay 2 tiendas).",
+      "prioridad": "MUST"
+    }
+  ]
+}
