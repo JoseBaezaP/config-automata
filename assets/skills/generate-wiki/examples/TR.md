@@ -8,7 +8,7 @@ Esta documentación abarca la integración de procesos automáticos de carga y v
 
 | Product Owner   | Scrum Master  | Líderes Técnicos         | TBA                |
 |-----------------|--------------|--------------------------|---------------------|
-| Chuck Cov    | Javier Lopez | Abuir Juarez, Patricia Rodriguez | <jbaeza@hebmex.com> |
+| Chuck Covian    | Javier Lopez | Abuir Juarez, Patricia Rodriguez | <jbaeza@hebmex.com> |
 
 ## Historia de Usuario
 

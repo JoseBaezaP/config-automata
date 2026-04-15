@@ -285,7 +285,7 @@ describe('configureProductos', () => {
     await configureProductos(skillsDir, {
       ...sampleConfig,
       productType: 'DIF',
-      productOwners: ['Oscar Almaguer', 'Chuck Cov'],
+      productOwners: ['Oscar Almaguer', 'Chuck Covian'],
       scrumMasters: ['Rocio Garza'],
       lideresTecnicos: ['David Morales'],
     });

@@ -173,14 +173,14 @@ describe('askProductoConfig', () => {
       .mockResolvedValueOnce('Dev - Product and Technology\\Fulfillment IMS')
       .mockResolvedValueOnce('Dev---Product-and-Technology.wiki')
       .mockResolvedValueOnce('DIF')                              // productType
-      .mockResolvedValueOnce('Oscar Almaguer, Chuck Cov')     // productOwners
+      .mockResolvedValueOnce('Oscar Almaguer, Chuck Covian')     // productOwners
       .mockResolvedValueOnce('Rocio Garza')                      // scrumMasters
       .mockResolvedValueOnce('David Morales, Jose Roque Solis'); // lideresTecnicos
 
     const result = await askProductoConfig();
 
     expect(result.productType).toBe('DIF');
-    expect(result.productOwners).toEqual(['Oscar Almaguer', 'Chuck Cov']);
+    expect(result.productOwners).toEqual(['Oscar Almaguer', 'Chuck Covian']);
     expect(result.scrumMasters).toEqual(['Rocio Garza']);
     expect(result.lideresTecnicos).toEqual(['David Morales', 'Jose Roque Solis']);
     expect(result.skippedOptional).toBeUndefined();

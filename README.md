@@ -132,7 +132,7 @@ Si aceptas configurarlos:
 
 ```
   Tipo de producto:                DIF
-  Product Owners (separados por coma):    Oscar Almaguer, Chuck Cov
+  Product Owners (separados por coma):    Oscar Almaguer, Chuck Covian
   Scrum Masters (separados por coma):     Rocio Garza
   Líderes Técnicos (separados por coma):  David Morales, Jose Roque Solis
 ```

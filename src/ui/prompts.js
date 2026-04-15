@@ -124,7 +124,7 @@ export async function askProductoConfig() {
   config.productType = productType.trim();
 
   const optionalArrayFields = [
-    { key: 'productOwners',   message: 'Product Owners (separados por coma):', placeholder: 'ej. Oscar Almaguer, Chuck Cov' },
+    { key: 'productOwners',   message: 'Product Owners (separados por coma):', placeholder: 'ej. Oscar Almaguer, Chuck Covian' },
     { key: 'scrumMasters',    message: 'Scrum Masters (separados por coma):',  placeholder: 'ej. Rocio Garza' },
     { key: 'lideresTecnicos', message: 'Líderes Técnicos (separados por coma):', placeholder: 'ej. David Morales, Jose Roque Solis' },
   ];
