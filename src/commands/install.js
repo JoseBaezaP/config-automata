@@ -124,9 +124,6 @@ export async function install() {
       '  Ambos archivos fueron copiados por separado — edítalos en sincronía manualmente.'
     );
   }
-  if (productoConfig && productoConfig.skippedOptional) {
-    showProductosLocation(skillsDir);
-  }
 
   // Step 9: Write manifest
   await writeManifest(
@@ -144,6 +141,8 @@ export async function install() {
   showNextSteps(assistant);
   if (!productoConfig) {
     showPendingConfig(skillsDir);
+  } else if (productoConfig.skippedOptional) {
+    showProductosLocation(skillsDir);
   }
   showSuccess();
 }
