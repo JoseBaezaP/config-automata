@@ -51,7 +51,7 @@ if (!patToken || patToken === "TU_PAT_AQUI") {
 // CONFIGURACIÓN Y VALIDACIÓN DE ARGUMENTOS
 // ============================================================================
 
-const [,, husFilePath, organization, project] = process.argv;
+const [, , husFilePath, organization, project] = process.argv;
 
 if (!husFilePath || !organization || !project) {
   console.error('❌ Error: Faltan argumentos requeridos\n');
@@ -82,7 +82,7 @@ function azureDevOpsRequest(method, path, body = null) {
     const encodedOrg = encodeURIComponent(organization);
     const encodedProject = encodeURIComponent(project);
     const fullPath = `/${encodedOrg}/${encodedProject}/_apis/${path}`;
-    
+
     const options = {
       hostname,
       path: fullPath,
@@ -96,11 +96,11 @@ function azureDevOpsRequest(method, path, body = null) {
 
     const req = https.request(options, (res) => {
       let data = '';
-      
+
       res.on('data', (chunk) => {
         data += chunk;
       });
-      
+
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           try {
@@ -174,7 +174,7 @@ async function linkWorkItems(sourceId, targetId, linkType = 'System.LinkTypes.Hi
  */
 async function linkWorkItemsBatch(links) {
   console.log(`🔗 Vinculando ${links.length} relaciones secuencialmente...`);
-  
+
   // ⚠️ VALIDACIÓN CRÍTICA: Verificar que todos los links tengan sourceId y targetId válidos
   const invalidLinks = links.filter(l => !l.sourceId || !l.targetId);
   if (invalidLinks.length > 0) {
@@ -182,16 +182,16 @@ async function linkWorkItemsBatch(links) {
     console.error(JSON.stringify(invalidLinks, null, 2));
     throw new Error(`No se pueden vincular work items con sourceId o targetId inválidos`);
   }
-  
+
   const results = [];
   let successful = 0;
   let failed = 0;
-  
+
   // Procesar secuencialmente en lugar de en paralelo
   for (let i = 0; i < links.length; i++) {
     const { sourceId, targetId, linkType } = links[i];
     console.log(`   🔗 Vinculando ${i + 1}/${links.length}: ${sourceId} -> ${targetId}...`);
-    
+
     try {
       await linkWorkItems(sourceId, targetId, linkType);
       successful++;
@@ -201,18 +201,18 @@ async function linkWorkItemsBatch(links) {
       results.push({ status: 'rejected', reason: error });
       console.error(`     ❌ Error vinculando ${sourceId} -> ${targetId}: ${error.message}`);
     }
-    
+
     // Pequeña pausa entre vinculaciones para no saturar la API
     if (i < links.length - 1) {
       await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
-  
+
   console.log(`✅ Vinculadas ${successful} relaciones exitosamente`);
   if (failed > 0) {
     console.log(`⚠️  ${failed} relaciones fallaron`);
   }
-  
+
   return results;
 }
 
@@ -222,7 +222,7 @@ async function linkWorkItemsBatch(links) {
 
 async function createWorkItemsFromHUs(husData, datosGenerales) {
   console.log('📋 Iniciando creación de work items en Azure DevOps...\n');
-  
+
   // ⚠️ VALIDACIÓN CRÍTICA DE areaPath
   if (!datosGenerales.areaPath) {
     console.error('❌ ERROR CRÍTICO: El campo areaPath está vacío o undefined en DatosGenerales');
@@ -230,24 +230,16 @@ async function createWorkItemsFromHUs(husData, datosGenerales) {
     console.error(`   project: "${project}"`);
     console.error('   areaPath recibido:', datosGenerales.areaPath);
     console.error('\n   El parámetro "project" es el nombre del proyecto, no un area path válido.');
-    console.error('   Los areas válidos en Azure DevOps incluyen backslash, ej: "Proyecto\\Área"');
     console.error('\n   SOLUCIÓN: Verificar que HUs_batch.json se generó con el areaPath correcto de productos.json.area_path');
     throw new Error('areaPath no puede estar vacío. Revisar generación de HUs_batch.json');
   }
-  
-  // ⚠️ VALIDACIÓN: areaPath no debe ser igual al nombre del proyecto (indica que usó el fallback)
+
+  // NOTA: areaPath puede ser igual al nombre del proyecto — eso es válido en Azure DevOps
+  // cuando se usa el área raíz del proyecto (e.g., "Dev - Partner Experience")
   if (datosGenerales.areaPath === project) {
-    console.error('❌ ERROR CRÍTICO: areaPath es igual al nombre del proyecto (se usó el fallback)');
-    console.error(`   areaPath: "${datosGenerales.areaPath}"`);
-    console.error(`   project: "${project}"`);
-    console.error('\n   Esto indica que HUs_batch.json no tiene un areaPath válido');
-    console.error('   El nombre del proyecto NO es un área válida en Azure DevOps');
-    console.error('\n   SOLUCIÓN: Verificar que el skill/agent genera HUs_batch.json con:');
-    console.error('     - areaPath: productConfig.area_path (NO productConfig.areaPath)');
-    console.error('     - Usar el valor completo de area_path, no la clave del producto');
-    throw new Error('areaPath no puede ser igual al nombre del proyecto');
+    console.log(`   ℹ️  areaPath es el área raíz del proyecto: "${datosGenerales.areaPath}"`);
   }
-  
+
   const epicTitle = datosGenerales.epicTitle || 'Epic - Iniciativa';
   const featureTitle = datosGenerales.featureTitle || 'Feature - Implementación';
   const areaPath = datosGenerales.areaPath;  // ⚠️ NO USAR fallback project
@@ -256,16 +248,16 @@ async function createWorkItemsFromHUs(husData, datosGenerales) {
   console.log(`   areaPath: ${areaPath}`);
   console.log(`   epicTitle: ${epicTitle}`);
   console.log(`   featureTitle: ${featureTitle}\n`);
-  
+
   const createdIds = {
     epic: null,
     feature: null,
     userStories: [],
     tasks: []
   };
-  
+
   const links = [];
-  
+
   try {
     // PASO 1: Crear Epic
     console.log('1️⃣  Creando Epic...');
@@ -286,7 +278,7 @@ async function createWorkItemsFromHUs(husData, datosGenerales) {
     });
     createdIds.feature = feature.id;
     console.log(`   ✅ Feature creado: ID ${feature.id}`);
-    
+
     // Vincular Feature -> Epic
     links.push({
       sourceId: feature.id,
@@ -296,7 +288,7 @@ async function createWorkItemsFromHUs(husData, datosGenerales) {
 
     // PASO 3: Crear User Stories en paralelo
     console.log(`\n3️⃣  Creando ${husData.HistoriasDeUsuario.length} User Stories en paralelo...`);
-    
+
     const userStoryPromises = husData.HistoriasDeUsuario.map(async (hu, index) => {
       try {
         const userStory = await createWorkItem('User Story', {
@@ -305,9 +297,9 @@ async function createWorkItemsFromHUs(husData, datosGenerales) {
           'Microsoft.VSTS.Common.AcceptanceCriteria': hu.CriteriosDeAceptacion || '',
           'System.AreaPath': areaPath
         });
-        
+
         console.log(`   ✅ User Story ${index + 1}/${husData.HistoriasDeUsuario.length} creada: ID ${userStory.id} - ${hu.Titulo.substring(0, 50)}...`);
-        
+
         return { userStory, tasks: hu.Tareas || [] };
       } catch (error) {
         console.error(`   ❌ Error creando User Story ${index + 1}: ${error.message}`);
@@ -316,7 +308,7 @@ async function createWorkItemsFromHUs(husData, datosGenerales) {
     });
 
     const userStoriesResults = await Promise.all(userStoryPromises);
-    
+
     // Vincular todas las User Stories al Feature
     userStoriesResults.forEach(({ userStory }) => {
       createdIds.userStories.push(userStory.id);
@@ -329,20 +321,20 @@ async function createWorkItemsFromHUs(husData, datosGenerales) {
 
     // PASO 4: Crear Tasks en paralelo
     console.log(`\n4️⃣  Creando Tasks en paralelo...`);
-    
+
     const taskPromises = [];
     let totalTasks = 0;
-    
+
     userStoriesResults.forEach(({ userStory, tasks }) => {
       // ⚠️ VALIDACIÓN CRÍTICA: Verificar que userStory.id existe
       if (!userStory || !userStory.id) {
         console.error(`   ❌ ERROR: User Story inválida o sin ID. No se pueden crear tasks para esta US.`);
         return;  // Skip esta User Story
       }
-      
+
       tasks.forEach((task, taskIndex) => {
         totalTasks++;
-        if(!task.Titulo.includes('[QA]') && task.SugerenciaCodigo) {
+        if (!task.Titulo.includes('[QA]') && task.SugerenciaCodigo) {
           task.Detalle += '<br><br><p class="editor-paragraph"><strong class="editor-text-bold">Sugerencia de codigo:</strong></p><p class="editor-paragraph"></p><pre><code>' + task.SugerenciaCodigo + '</code></pre>';
         }
         const taskPromise = createWorkItem('Task', {
@@ -351,53 +343,53 @@ async function createWorkItemsFromHUs(husData, datosGenerales) {
           'System.AreaPath': areaPath
         }).then(createdTask => {
           console.log(`   ✅ Task creada: ID ${createdTask.id} - ${task.Titulo.substring(0, 50)}...`);
-          
+
           createdIds.tasks.push(createdTask.id);
-          
+
           // Vincular Task a User Story
           links.push({
             sourceId: createdTask.id,
             targetId: userStory.id,
             linkType: 'System.LinkTypes.Hierarchy-Reverse'
           });
-          
+
           return createdTask;
         }).catch(error => {
           console.error(`   ❌ Error creando Task (${task.Titulo}): ${error.message}`);
           // ⚠️ NO hacer throw aquí, solo loguear para que continúe con otras tasks
           return null;  // Retornar null para indicar que falló
         });
-        
+
         taskPromises.push(taskPromise);
       });
     });
-    
+
     const taskResults = await Promise.all(taskPromises);
     console.log(`   ✅ Total de ${totalTasks} Tasks procesadas (${taskResults.filter(t => t !== null).length} exitosas, ${taskResults.filter(t => t === null).length} fallidas)`);
 
     // PASO 5: Vincular todos los work items en batch
     console.log(`\n5️⃣  Vinculando ${links.length} work items...`);
     await linkWorkItemsBatch(links);
-    
+
     // VALIDACIÓN DE INTEGRIDAD DE VINCULACIONES
     console.log(`\n6️⃣  Validando integridad de vinculaciones...`);
-    
+
     const expectedTaskLinks = totalTasks;  // Cada task debe tener 1 link a su User Story
-    const actualTaskLinks = links.filter(l => 
-      l.linkType === 'System.LinkTypes.Hierarchy-Reverse' && 
+    const actualTaskLinks = links.filter(l =>
+      l.linkType === 'System.LinkTypes.Hierarchy-Reverse' &&
       userStoriesResults.some(us => us.userStory.id === l.targetId)
     ).length;
-    
+
     console.log(`   ✅ Expected task links: ${expectedTaskLinks}`);
     console.log(`   ✅ Actual task links:   ${actualTaskLinks}`);
-    
+
     if (actualTaskLinks !== expectedTaskLinks) {
       console.error(`   ⚠️  ADVERTENCIA: ${expectedTaskLinks - actualTaskLinks} tasks podrían no estar correctamente vinculadas a sus User Stories`);
       console.error(`   Verificar que todas las tasks tengan su link correspondiente en Azure DevOps`);
     } else {
       console.log(`   ✅ Todas las tasks están correctamente vinculadas a sus User Stories`);
     }
-    
+
     // RESUMEN FINAL
     console.log('\n' + '='.repeat(60));
     console.log('✅ CREACIÓN COMPLETADA EXITOSAMENTE');
@@ -433,14 +425,14 @@ async function main() {
     console.log(`📂 Leyendo archivo: ${husFilePath}\n`);
     const fileContent = fs.readFileSync(husFilePath, 'utf8');
     const husData = JSON.parse(fileContent);
-    
+
     // Validar estructura
     if (!husData.HistoriasDeUsuario || !Array.isArray(husData.HistoriasDeUsuario)) {
       throw new Error('El archivo HUs.json no tiene la estructura esperada (debe contener "HistoriasDeUsuario")');
     }
-    
+
     console.log(`✅ Archivo cargado exitosamente: ${husData.HistoriasDeUsuario.length} Historias de Usuario encontradas\n`);
-    
+
     // ⚠️ VALIDACIÓN DE DatosGenerales antes de usar defaults
     console.log('🔍 Analizando DatosGenerales del archivo...');
     console.log(`   areaPath presente: ${husData.DatosGenerales ? 'SÍ' : 'NO'}`);
@@ -448,8 +440,7 @@ async function main() {
       console.log(`   areaPath valor: "${husData.DatosGenerales.areaPath}"`);
       // Verificar si tiene backslash (característica de un area path válido)
       if (!husData.DatosGenerales.areaPath.includes('\\')) {
-        console.warn(`   ⚠️  ADVERTENCIA: areaPath NO tiene backslash (\\)`);
-        console.warn(`      Esto podría indicar que es solo el nombre del proyecto, no un área válida`);
+        console.log(`   ℹ️  areaPath sin backslash — puede ser un área raíz válida (e.g., "Dev - Partner Experience")`);
       }
     } else {
       console.warn(`   ⚠️  ADVERTENCIA: areaPath está ausente en DatosGenerales`);
@@ -457,7 +448,7 @@ async function main() {
       console.warn(`      ESTO GENERALMENTE CAUSA EL ERROR DE AREA INVÁLIDO`);
     }
     console.log('');
-    
+
     // Configuración de datos generales (puede venir en el JSON o usar defaults)
     const datosGenerales = {
       epicTitle: husData.DatosGenerales?.epicTitle || 'Epic - Iniciativa TBA',
@@ -466,12 +457,12 @@ async function main() {
       featureDescription: husData.DatosGenerales?.featureDescription || 'Feature generado automáticamente por TBA Orchestrator',
       areaPath: husData.DatosGenerales?.areaPath || project  // ← ESTE ES EL PROBLEMA SI areaPath NO ESTÁ
     };
-    
+
     // Crear los work items
     const result = await createWorkItemsFromHUs(husData, datosGenerales);
-    
+
     process.exit(0);
-    
+
   } catch (error) {
     console.error('\n💥 Error fatal:');
     console.error(error.message);
@@ -480,3 +471,4 @@ async function main() {
 }
 
 main();
+
