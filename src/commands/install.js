@@ -10,6 +10,7 @@ import {
   askAzurePAT,
   askProductoConfig,
   showProductosLocation,
+  showPendingConfig,
   confirmOverwrite,
   showProgress,
   showFileList,
@@ -141,5 +142,8 @@ export async function install() {
   // Step 10: Show results
   showFileList(copiedFiles);
   showNextSteps(assistant);
+  if (!productoConfig) {
+    showPendingConfig(skillsDir);
+  }
   showSuccess();
 }

@@ -154,6 +154,22 @@ export function showProductosLocation(skillsDir) {
 }
 
 /**
+ * Shows a clack.note with all config files the user needs to edit manually.
+ * Called when the user skips the product/team configuration entirely.
+ * @param {string} skillsDir - Destination skills directory
+ */
+export function showPendingConfig(skillsDir) {
+  clack.note(
+    `Para que las skills funcionen correctamente, edita los siguientes archivos:\n\n` +
+    `  1. Producto / Equipo\n` +
+    `     ${skillsDir}/create-azure-workitems/config/productos.json\n\n` +
+    `  2. Azure DevOps PAT  (si aún no lo configuraste)\n` +
+    `     ${skillsDir}/create-azure-workitems/config/azure-pat.js`,
+    'Configuración pendiente'
+  );
+}
+
+/**
  * Prompts the user to confirm overwriting an existing installation.
  * Returns true/false or a cancel symbol.
  * @returns {Promise<boolean | symbol>}
