@@ -1,16 +1,8 @@
 ---
 description: HEB-Automata - Orquestador principal que detecta micro-changes vs flujo SDD completo, coordina analisis de PRD, generacion de HUs con Gherkin, planificacion de arquitectura, implementacion de codigo con tests, documentacion tecnica, y subida opcional a Azure DevOps. Ejecuta Track A (documentacion) y Track B (implementacion) en paralelo con sistema de challenge en cada gate.
 mode: primary
-model: github-copilot/claude-sonnet-4.6
-tools:
-  write: true
-  bash: true
-  read: true
-  edit: true
-  task: true
-  todowrite: true
-  todoread: true
-  question: true
+model: Claude Sonnet 4.6
+tools: [execute, read, agent, edit, search, todo]
 ---
 
 # HEB-Automata - Orquestador Principal

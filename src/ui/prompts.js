@@ -85,12 +85,11 @@ export async function askProductoConfig() {
   if (!wants) return null;
 
   const fields = [
-    { key: 'nombre',       message: 'Nombre del producto/equipo:', placeholder: 'ej. Fulfillment' },
-    { key: 'tba',          message: 'Tu nombre (TBA):',             placeholder: 'ej. Jose Baeza' },
-    { key: 'organizacion', message: 'Organización Azure DevOps:',   placeholder: 'ej. hebmexico' },
-    { key: 'proyecto',     message: 'Proyecto Azure DevOps:',       placeholder: 'ej. Dev - Product and Technology' },
-    { key: 'areaPath',     message: 'Area Path:',                   placeholder: 'ej. Dev - Product and Technology\\Fulfillment IMS' },
-    { key: 'wikiId',       message: 'Wiki ID:',                     placeholder: 'ej. Dev---Product-and-Technology.wiki' },
+    { key: 'nombre',   message: 'Nombre del producto/equipo:', placeholder: 'ej. Fulfillment' },
+    { key: 'tba',      message: 'Tu nombre (TBA):',             placeholder: 'ej. Jose Baeza' },
+    { key: 'proyecto', message: 'Proyecto Azure DevOps:',       placeholder: 'ej. Dev - Product and Technology' },
+    { key: 'areaPath', message: 'Area Path:',                   placeholder: 'ej. Dev - Product and Technology\\Fulfillment IMS' },
+    { key: 'wikiId',   message: 'Wiki ID:',                     placeholder: 'ej. Dev---Product-and-Technology.wiki' },
   ];
 
   const config = {};

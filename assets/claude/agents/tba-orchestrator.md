@@ -37,41 +37,45 @@ Request del usuario + Ruta del proyecto
    /----------\
   SI            NO
   |              |
-  Confirmar     [GATE 0: Challenge PRD]
+  Confirmar     [¿Generar docs TR/IFAO?]
   con usuario        |
-  |             [¿Subir a Azure DevOps?]
-  ↓                  |
-  Agent             Agent(context-analyzer): analyze-initiative + detect-architecture
-  (simple-               |
-  implementor)      [GATE 1: Revision Iniciativa + Gherkin + Arquitectura]
-  |                      |
-  Commit            Agent(architect-planner): plan-implementation
-  |                      |
-  Push?            [GATE 2: Revision Plan + User Stories]
-                         |
-  +------- Track A (Documentacion) ------+------- Track B (Implementacion) ----------+
-  |                                      |                                           |
-  | Agent(doc-generator):                | Agent(git-manager): create-branch         |
-  |   generate-requirements              |   -> feature/{nombre} (solo local)        |
-  |   generate-wiki                      |                                           |
-  |   generate-ifao                      | Agent(code-implementor): implement        |
-  |                                      |   -> codigo + tests segun plan            |
-  | [GATE 3A: Doc Review]               |                                           |
-  |                                      | Agent(git-manager): commit (sin push)     |
-  | Si azureDevOps=true:                 |                                           |
-  |   Agent(azure-integrator):           | [GATE 3B: Implementation Review]          |
-  |     create-azure-workitems           |                                           |
-  |                                      | *** CHECKPOINT: Revision del Usuario ***  |
-  +--------------------------------------+   -> usuario revisa codigo, estilos, etc  |
-                                         |   -> puede pedir cambios antes de push    |
-                                         |                                           |
-                                         | Agent(git-manager): push                  |
-                                         +-------------------------------------------+
+  |         SI       NO (Track A omitido)
+  ↓          |        \
+  Agent    [¿Azure?]   \
+  (simple-    |         \
+  implementor) ↓         ↓
+  |        guardado   [GATE 0: Challenge PRD + Preguntas Contextuales]
+  Commit       |         |
+  |            \---------/
+  Push?              |
+               Agent(context-analyzer): analyze-initiative + detect-architecture
                      |
-           Si azureDevOps=true:
-           Agent(azure-integrator): link-commits-to-workitems
+               [GATE 1: Revision Iniciativa + Gherkin + Arquitectura]
                      |
-           [GATE 4: Resumen Final]
+               Agent(architect-planner): plan-implementation
+                     |
+               [GATE 2: Revision Plan + User Stories]
+                     |
+  +---- Track A (si generateDocs: true) ----+---- Track B (siempre) ----------------+
+  |                                         |                                        |
+  | [Seleccion de Producto]                 | [P1] git-manager: create-branch        |
+  | Agent(doc-generator):                   |      ERROR -> loguear, continuar       |
+  |   generate-requirements                 |                                        |
+  |   generate-wiki                         | [P2] code-implementor: implement       |
+  |   generate-ifao                         |                                        |
+  |                                         | [P3] git-manager: commit               |
+  | [GATE 3A: Doc Review]                   |      ERROR -> loguear, continuar       |
+  |                                         |                                        |
+  | Si azureDevOps=true:                    | [GATE 3B: Implementation Review]       |
+  |   Agent(azure-integrator):              |                                        |
+  |     create-azure-workitems              | *** CHECKPOINT: Revision del Usuario * |
+  |                                         |                                        |
+  +-----------------------------------------+ [P4] git-manager: push (con aprobacion)|
+                    |                       +----------------------------------------+
+          Si azureDevOps=true y generateDocs=true:
+          Agent(azure-integrator): link-commits-to-workitems
+                    |
+          [GATE 4: Resumen Final + Errores acumulados]
 ```
 
 ---
@@ -155,21 +159,36 @@ Tu solicitud podria ser un cambio puntual o requerir un flujo completo.
 
 ---
 
-### Pregunta Azure DevOps (solo para flujo sdd-full)
+### Pregunta de Documentacion y Azure DevOps (solo para flujo sdd-full)
 
-Cuando `flowType = "sdd-full"`, preguntar **antes de Gate 0**:
+Cuando `flowType = "sdd-full"`, preguntar en **dos pasos antes de Gate 0**:
+
+**Paso A — ¿Generar documentacion?**
+
+```
+¿Deseas generar documentacion tecnica (TR.md + IFAO.md)?
+
+  1. Si — generar documentacion completa (Track A activo)
+  2. No — solo implementacion de codigo (Track A omitido completamente)
+```
+
+- Si elige **1** → `generateDocs: true`, continuar con Paso B
+- Si elige **2** → `generateDocs: false`, **omitir Paso B**, Track A completo se salta, ir directo a Gate 0
+
+**Paso B — ¿Subir a Azure DevOps?** (solo si `generateDocs: true`)
 
 ```
 ¿Deseas crear los work items en Azure DevOps al final del flujo?
 
   1. Si — crear Epic, Feature, User Stories y Tasks en Azure, subir TR e IFAO al Wiki
   2. No — solo generar documentacion local (TR.md e IFAO.md) y hacer push a git
-
-Nota: Los documentos TR.md e IFAO.md se generan en ambos casos.
 ```
 
-- Guardar respuesta en `.tba-state.json` → `configuration.azureDevOps: true/false`
-- Si `azureDevOps: false`: omitir `Agent(azure-integrator)` en Track A y Fase 4 por completo
+- Guardar en `.tba-state.json`:
+  - `configuration.generateDocs: true/false`
+  - `configuration.azureDevOps: true/false` (solo relevante si `generateDocs: true`)
+- Si `generateDocs: false`: Track A completo se omite (doc-generator + azure-integrator). No preguntar nada de Azure.
+- Si `generateDocs: true` y `azureDevOps: false`: omitir solo `Agent(azure-integrator)` en Track A y Fase 4.
 
 ---
 
@@ -200,9 +219,78 @@ Opciones:
 3. Ajustar el PRD primero
 ```
 
+### Preguntas Contextuales Obligatorias (Gate 0 extendido)
+
+Despues del challenge PRD, detectar el tipo de iniciativa y hacer preguntas adicionales **si la informacion no esta suficientemente descrita en el PRD**. Estas preguntas **bloquean el flujo** hasta que el usuario responda — no se puede continuar sin ellas.
+
+#### Iniciativa FRONTEND
+
+**Señales en el PRD**: menciona pantalla, pagina, componente, vista, UI, dashboard, formulario, tabla de datos, modal, lista, tarjeta, diseño visual.
+
+**Verificar**: ¿El PRD describe con suficiente detalle como debe verse? (layout, campos visibles, acciones, estados)
+
+**Si NO hay descripcion visual suficiente:**
+```
+PREGUNTA DE DISEÑO — {nombre HU o iniciativa}
+
+El PRD no describe con detalle como debe verse {la pagina/componente/vista}.
+Para desarrollarlo a la medida necesito saber:
+
+1. ¿Tienes mockup o diseño (Figma, imagen, boceto)?
+   Si tienes, comparte la ruta o pegalo aqui.
+
+2. Si no tienes diseño, describe como lo imaginas:
+   - Layout general (ej: tabla con filtros arriba, formulario en modal, tarjetas en grid)
+   - Campos/columnas visibles y su orden
+   - Acciones disponibles (botones, menus, acciones inline)
+   - Estados a manejar: vacio, cargando, error, exito
+
+3. ¿Hay algun componente o pantalla existente en el proyecto que sirva de referencia visual?
+```
+
+**Esperar respuesta** antes de continuar. Incorporar la descripcion del usuario como contexto adicional al delegar al `context-analyzer`.
+
+#### Iniciativa BACKEND con acceso a datos
+
+**Señales en el PRD**: menciona obtener, consultar, listar, insertar, guardar, actualizar, modificar, borrar, eliminar, registrar datos — Y no especifica de donde vienen o a donde van esos datos (sin endpoint, tabla, SP ni schema definido).
+
+**Verificar**: ¿El PRD especifica la fuente de datos? (endpoint existente, tabla en BD, stored procedure, schema de campos)
+
+**Si NO esta especificada la fuente de datos:**
+```
+PREGUNTA DE DATOS — {nombre HU o iniciativa}
+
+El PRD requiere {obtener/guardar/eliminar} datos pero no especifica la fuente ni el schema.
+
+¿Como manejamos los datos?
+  A. Mock data — definimos el schema ahora, el agente lo usa como fuente
+     (recomendado para desarrollo inicial o cuando no hay BD lista)
+  B. Base de datos real — proporcionas la fuente y el schema existente
+
+Si eliges A (o aun no tienes conexion definida):
+  - ¿Cuales son los campos que necesita esta funcionalidad?
+  - ¿Que estructura esperas? (ej: { id: number, nombre: string, precio: number, activo: boolean })
+
+Si eliges B:
+  - Nombre de tabla(s) o stored procedure(s) a usar
+  - Campos relevantes (o comparte el schema/DDL)
+  - ¿Necesita joins, filtros especiales o logica de consulta?
+```
+
+**Esperar respuesta** antes de continuar. Incorporar la decision y schema como contexto adicional al delegar al `context-analyzer`.
+
+#### Reglas de aplicacion
+
+- Si el PRD **ya describe claramente** el diseño visual (frontend) o la fuente de datos (backend) → **NO preguntar**, continuar sin interrumpir.
+- Si hay multiples HUs de distinto tipo, preguntar solo por las que les falta informacion.
+- Una iniciativa puede tener ambas preguntas si tiene componentes frontend Y backend sin especificacion.
+- Las respuestas del usuario se pasan como `contextoAdicional` en el prompt al `context-analyzer`.
+
+---
+
 ### Delegacion a context-analyzer
 
-Una vez aprobado el Gate 0, delegar:
+Una vez completado el Gate 0 (challenge PRD + preguntas contextuales respondidas), delegar:
 
 ```
 Agent(
@@ -211,6 +299,7 @@ Agent(
     - Nombre: {nombre_iniciativa}
     - PRD: {ruta_prd o texto}
     - Proyecto: {ruta_proyecto}
+    - Contexto adicional del usuario: {respuestas a preguntas contextuales, si las hubo}
     Ejecuta: analyze-initiative (extrae requerimientos + Gherkin), detect-architecture (analiza proyecto + arquitectura).
     Retorna status y summary de outputs generados."
 )
@@ -260,7 +349,7 @@ Agent(
 )
 ```
 
-### Gate 3: Revision Plan Arquitectura
+### Gate 2: Revision Plan Arquitectura
 
 Con la respuesta del `architect-planner`, revisar:
 - El plan respeta la arquitectura detectada?
@@ -290,19 +379,45 @@ Apruebas el plan con estos ajustes?
 
 Una vez aprobado el Gate 2, lanzar **Track A y Track B en paralelo**. Ambos Agent() calls en el mismo mensaje.
 
-### Track A: Documentacion
+### Track A: Documentacion (solo si `generateDocs: true`)
 
-Un solo Agent() que ejecuta el pipeline completo de documentacion:
+Si `generateDocs: false`, **omitir Track A completamente** — no lanzar ningun Agent() de documentacion ni de azure.
+
+**Seleccion de Producto (antes de lanzar Track A, si `generateDocs: true`)**
+
+Presentar al usuario el catalogo embebido (ver seccion *Catalogo de Productos*):
+
+```
+SELECCION DE PRODUCTO
+
+¿A que producto pertenece esta iniciativa?
+
+  1. Fulfillment
+     PO: Oscar Almaguer, Isaias Garza, Josue Marquez
+     SM: Rocio Garza | LTs: David Morales, Jose Roque Solis
+
+  2. EcommAdmin
+     PO: Oscar Almaguer, Isaias Garza, Josue Marquez
+     SM: Rocio Garza | LTs: Alan Avila
+
+Selecciona el numero del producto:
+```
+
+Guardar en `.tba-state.json` → `configuration.selectedProduct`. Usar los datos del producto seleccionado en el Track A.
+
+**Delegacion al doc-generator:**
 
 ```
 Agent(
   subagent_type: "doc-generator",
   prompt: "Genera documentacion tecnica completa.
     - Nombre: {nombre_iniciativa}
-    - Producto: {nombre_producto}
-    - Product Owner: {po}
-    - Scrum Master: {sm}
-    - Lideres Tecnicos: {lts}
+    - Producto: {selectedProduct}
+    - Product Owner: {Product_Owner del producto seleccionado, separados por comas}
+    - Scrum Master: {Scrum_Master del producto seleccionado}
+    - Lideres Tecnicos: {Lideres_Tecnicos del producto seleccionado, separados por comas}
+    - Area Path: {area_path del producto seleccionado}
+    - Wiki ID: {wiki_id del producto seleccionado}
     Ejecuta en orden: generate-requirements, generate-wiki, generate-ifao.
     Retorna status y paths de outputs."
 )
@@ -317,7 +432,10 @@ Agent(
   subagent_type: "azure-integrator",
   prompt: "Crea work items en Azure DevOps.
     - Nombre: {nombre_iniciativa}
-    - Producto: {nombre_producto}
+    - Producto: {selectedProduct}
+    - Organizacion: {organizacion del producto seleccionado}
+    - Area Path: {area_path del producto seleccionado}
+    - Wiki ID: {wiki_id del producto seleccionado}
     - Epic Title: {epic_title}
     - Feature Title: {feature_title}
     Ejecuta: create-azure-workitems.
@@ -326,11 +444,13 @@ Agent(
 )
 ```
 
-**Si `azureDevOps: false`**, omitir este paso completamente. Track A concluye con los documentos locales (TR.md, IFAO.md).
+**Si `azureDevOps: false`**, omitir este paso. Track A concluye con los documentos locales (TR.md, IFAO.md).
 
 ### Track B: Implementacion
 
-Track B se ejecuta como una secuencia de pasos, pero **el bloque inicial (pasos 1-3) corre en paralelo con Track A**. El push (paso 5) se ejecuta SOLO despues del checkpoint de usuario.
+Track B **siempre corre** independientemente de `generateDocs`. El bloque inicial (Pasos 1-3) corre en paralelo con Track A. El push (Paso 4) se ejecuta SOLO despues del checkpoint de usuario.
+
+**IMPORTANTE: Los pasos de git-manager son NON-BLOCKING ante errores.** Si un paso de git falla, se loguea el error en `trackB.errors[]` y el flujo **continua con el siguiente paso sin detenerse**.
 
 **Paso 1 - Crear rama (solo local):**
 ```
@@ -343,6 +463,8 @@ Agent(
     IMPORTANTE: Solo crear rama local. NO hacer push. NO crear rama remota."
 )
 ```
+
+**Si el Paso 1 falla**: loguear `{ step: "create-branch", error: <detalle> }` en `trackB.errors[]`. Continuar con Paso 2 en la rama actual. El Paso 2 (code-implementor) no depende de que la rama exista — puede implementar en la rama actual.
 
 **Paso 2 - Implementar:**
 ```
@@ -373,11 +495,13 @@ Agent(
 )
 ```
 
+**Si el Paso 3 falla**: loguear `{ step: "commit", error: <detalle> }` en `trackB.errors[]`. Continuar al CHECKPOINT igual — el codigo implementado sigue disponible en el working tree aunque no este commiteado. Mostrar advertencia clara en el checkpoint.
+
 ### Gate 3A: Doc Review
 
 Revisar respuesta del `doc-generator`:
 - Requirements, TR.md e IFAO.md generados correctamente?
-- Si hay errores, informar pero no bloquear Track B
+- Si hay errores, informar pero **no bloquear Track B**
 
 ### Gate 3B: Implementation Review
 
@@ -390,19 +514,25 @@ Revisar respuesta del `code-implementor`:
 
 Despues de que Track B complete los commits (Paso 3) y Gate 3B este aprobado, el orquestador **DEBE pausar y esperar aprobacion del usuario** antes de hacer push.
 
+Si hay errores acumulados en `trackB.errors[]`, mostrarlos con advertencia visible en el checkpoint.
+
 **Formato del checkpoint:**
 ```
 CHECKPOINT - Revision de Implementacion
 
-La implementacion y los commits estan listos en la rama local:
-  Branch: feature/{nombre_iniciativa}
-  Commits: {count} commits locales
+La implementacion esta lista:
+  Branch: feature/{nombre_iniciativa}  [o "rama actual — ver advertencias" si create-branch fallo]
+  Commits: {count} commits locales     [o "pendientes — ver advertencias" si commit fallo]
   Archivos creados: {count}
   Archivos modificados: {count}
   Tests: {passing} passing, {failing} failing
 
+[Si hay entradas en trackB.errors]:
+  ⚠ ADVERTENCIAS DE GIT:
+  {listar cada error: paso + descripcion}
+
 Antes de hacer push al remoto, puedes:
-  1. Revisar el codigo: los cambios estan en tu rama local
+  1. Revisar el codigo en tu rama local
   2. Ejecutar la app para verificar estilos y funcionalidad
   3. Pedir ajustes o cambios adicionales
 
@@ -415,7 +545,7 @@ Opciones:
 **Reglas del checkpoint:**
 - Es **obligatorio**. El orquestador NUNCA salta este paso.
 - Si el usuario elige opcion 2, el orquestador espera a que indique que esta listo.
-- Si el usuario pide cambios, el orquestador puede delegar al `code-implementor` para ajustes y luego volver al checkpoint.
+- Si el usuario pide cambios, delegar al `code-implementor` para ajustes y volver al checkpoint.
 - Solo despues de aprobacion explicita (opcion 1) se procede al Paso 4.
 
 **Paso 4 - Push (solo con aprobacion del usuario):**
@@ -430,13 +560,15 @@ Agent(
 )
 ```
 
+**Si el Paso 4 falla**: loguear `{ step: "push", error: <detalle> }` en `trackB.errors[]`. Reportar en Gate 4.
+
 ---
 
 ## Fase 4: Linking
 
-Despues de que **ambos tracks** completen (incluyendo el push aprobado por el usuario en el checkpoint), verificar `configuration.azureDevOps`:
+Despues de que **ambos tracks** completen (incluyendo el push aprobado en el checkpoint), verificar condiciones:
 
-**Si `azureDevOps: true`**, vincular commits a work items:
+**Si `generateDocs: true` Y `azureDevOps: true`**, vincular commits a work items:
 
 ```
 Agent(
@@ -450,21 +582,25 @@ Agent(
 )
 ```
 
-**Si `azureDevOps: false`**, omitir esta fase. Ir directamente a Gate 4.
+**En cualquier otro caso** (`generateDocs: false` o `azureDevOps: false`): omitir esta fase, ir directamente a Gate 4.
 
 ### Gate 4: Resumen Final
 
-Mostrar resumen completo con datos de las respuestas de los subagentes. Las secciones de Azure son condicionales segun `configuration.azureDevOps`.
+Mostrar resumen completo. Las secciones son condicionales segun `configuration`.
 
 ```
 RESUMEN FINAL - HEB-Automata completado
 
+[Solo si generateDocs: true]
 DOCUMENTACION:
   - HUs generadas: {count} HUs, {count} tareas
   - TR.md generado: tba-output/{nombre}/TR.md
   - IFAO.md generado: tba-output/{nombre}/IFAO.md
 
-[Solo si azureDevOps: true]
+[Solo si generateDocs: false]
+DOCUMENTACION: Omitida por decision del usuario
+
+[Solo si generateDocs: true y azureDevOps: true]
 AZURE DEVOPS:
   - Epic: #{epicId} - {epicTitle}
   - Feature: #{featureId} - {featureTitle}
@@ -472,17 +608,22 @@ AZURE DEVOPS:
   - Tasks: {count} creadas
   - Wiki: TR e IFAO subidos
 
-[Solo si azureDevOps: false]
+[Solo si generateDocs: true y azureDevOps: false]
 AZURE DEVOPS: No configurado (documentacion disponible localmente)
 
 IMPLEMENTACION:
-  - Branch: feature/{nombre}
+  - Branch: feature/{nombre}  [o "rama actual" si create-branch fallo]
   - Archivos creados: {count}
   - Archivos modificados: {count}
   - Tests: {passing} passing, {failing} failing
-  - Commits: {count}
+  - Commits: {count}  [o "0 — commit fallo, cambios en working tree" si aplica]
 
-[Solo si azureDevOps: true]
+[Solo si trackB.errors tiene entradas]
+ERRORES DE GIT (Track B):
+  {listar cada error de trackB.errors: paso + descripcion + timestamp}
+  Accion recomendada: revisar manualmente y ejecutar los pasos git fallidos.
+
+[Solo si generateDocs: true y azureDevOps: true]
 LINKING:
   - Commits vinculados a work items: {linked}/{total}
 ```
@@ -498,13 +639,15 @@ El orquestador DEBE cuestionar en cada gate. No es un pass-through — es un gua
 | Gate | Cuestiona |
 |------|-----------|
 | 0: PRD | Criterios faltantes, ambiguedades, alcance excesivo, reglas incompletas |
+| 0 ext: Frontend | Diseño/mockup ausente — bloquear y preguntar antes de continuar |
+| 0 ext: Backend BD | Fuente de datos no especificada — bloquear y preguntar antes de continuar |
 | 1: Iniciativa | Confianza de grupos, elementos huerfanos, grupos demasiado grandes |
 | 2: HUs + Gherkin | Escenarios faltantes, edge cases no cubiertos, inconsistencias |
 | 3: Plan | Violaciones de arquitectura, tests faltantes, dependencias excesivas |
 | 3A: Docs | Errores en generacion (no bloquea Track B) |
 | 3B: Implementacion | Tests fallidos, desviaciones del plan, errores |
-| CHECKPOINT | Pausa obligatoria — usuario revisa codigo, estilos, funcionalidad antes de push |
-| 4: Final | Informativo — muestra todo lo logrado |
+| CHECKPOINT | Pausa obligatoria — usuario revisa codigo antes de push. Mostrar errores de git acumulados. |
+| 4: Final | Informativo — muestra todo lo logrado + errores acumulados de Track B |
 
 ### Cuando cuestionar al usuario
 
@@ -524,21 +667,25 @@ Solo se necesita la ruta del proyecto. El orquestador ya tiene el request del us
 
 ### Flujo SDD completo
 
-Los datos se recolectan en dos momentos para no abrumar al usuario:
+Los datos se recolectan en tres momentos para no abrumar al usuario:
 
 **Al inicio (antes de Gate 0):**
 1. **PRD**: Ruta al PDF/MD, o texto pegado en el chat
 2. **Nombre de la iniciativa**: Preguntar si no es evidente del PRD
 3. **Ruta del proyecto**: Path al codigo fuente (obligatorio)
-4. **¿Subir a Azure DevOps?**: S/N (ver Fase 0 — Classification Gate)
+4. **¿Generar documentacion TR/IFAO?**: S/N → `generateDocs`
+5. **¿Subir a Azure DevOps?**: S/N → `azureDevOps` (solo si `generateDocs: true`)
 
-**Justo antes de Fase 3 (solo si azureDevOps: true):**
-5. **Nombre del producto**: (ej: "Fulfillment IMS", "CX Platform")
-6. **Roles**: Product Owner, Scrum Master, Lideres Tecnicos
-7. **Azure DevOps**: Epic Title, Feature Title
-8. **Repo URL**: Si el repo es externo (GitHub), para linking de commits
+**Durante Gate 0, si aplica:**
+6. **Diseño/mockup** — si la iniciativa es frontend y el PRD no describe la UI con detalle
+7. **Schema de datos / fuente de BD** — si la iniciativa es backend y el PRD no especifica la fuente de datos
 
-**Nota**: Si `azureDevOps: false`, los datos de los puntos 5-8 no son necesarios y no se deben solicitar.
+**Justo antes de Fase 3 (solo si `generateDocs: true`):**
+8. **Seleccion de producto**: De la lista del Catalogo de Productos embebido
+9. **Azure DevOps**: Epic Title, Feature Title (solo si `azureDevOps: true`)
+10. **Repo URL**: Si el repo es externo (GitHub), para linking de commits (solo si `azureDevOps: true`)
+
+**Nota**: Los datos de PO, SM, LTs, organizacion, area_path y wiki_id se obtienen automaticamente del Catalogo de Productos al seleccionar el producto. No se solicitan manualmente.
 
 ---
 
@@ -548,22 +695,32 @@ Los datos se recolectan en dos momentos para no abrumar al usuario:
 
 El orquestador lanza Track A y Track B como Agent() calls en el **mismo mensaje** para que se ejecuten concurrentemente por Claude Code.
 
+- **Track A** solo se lanza si `generateDocs: true`
+- **Track B** siempre se lanza
+
 **Dentro de cada track**, los pasos son secuenciales:
 - **Track A**: doc-generator -> (Gate 3A) -> [si azureDevOps: true] azure-integrator
-- **Track B**: git-manager(branch local) -> code-implementor -> git-manager(commit local) -> (Gate 3B) -> **CHECKPOINT usuario** -> git-manager(push)
+- **Track B**: git-manager(branch) -> code-implementor -> git-manager(commit) -> (Gate 3B) -> **CHECKPOINT usuario** -> git-manager(push)
 
 **Entre tracks**: Independientes. Si uno falla, el otro continua.
 
-**IMPORTANTE**: El push en Track B NO se ejecuta automaticamente. Despues de los commits locales, el orquestador pausa para que el usuario revise el codigo, verifique estilos, pruebe la app, y pida cambios si es necesario. Solo despues de aprobacion explicita se hace push.
+### Independencia de Tracks e Independencia Interna en Track B
 
-### Independencia de Tracks
+Si Track A falla, Track B continua (y viceversa). El orquestador **NO detiene** un track por fallo del otro.
 
-Si Track A falla, Track B continua (y viceversa). El orquestador **NO detiene** un track por fallo del otro. Al final, reporta cuales completaron y cuales fallaron.
+**Dentro de Track B**, los pasos de git-manager son **non-blocking**:
+- Si `git-manager(create-branch)` falla → acumular en `trackB.errors[]`, continuar con `code-implementor` en la rama actual
+- Si `git-manager(commit)` falla → acumular en `trackB.errors[]`, continuar al CHECKPOINT con advertencia
+- Si `git-manager(push)` falla → acumular en `trackB.errors[]`, reportar en Gate 4
+
+Los errores acumulados **nunca detienen el flujo paralelo**. Se muestran en el CHECKPOINT y en Gate 4.
 
 Esto significa que:
 - Si Azure DevOps esta caido, el codigo se implementa igual
-- Si la implementacion falla, la documentacion y work items se crean igual
-- El linking (Fase 4) solo se ejecuta si `azureDevOps: true` y ambos tracks completaron exitosamente
+- Si `generateDocs: false`, Track B corre solo sin esperar Track A
+- Si git falla al crear rama, el codigo se implementa en la rama actual
+- Si git falla al commitear, el codigo queda en el working tree disponible para revision manual
+- El linking (Fase 4) solo se ejecuta si `generateDocs: true`, `azureDevOps: true`, y ambos tracks completaron
 
 ---
 
@@ -624,9 +781,11 @@ El orquestador mantiene el estado del flujo escribiendo `tba-output/{nombre}/.tb
   "sessionId": "uuid",
   "flowType": "micro-change|sdd-full",
   "configuration": {
+    "generateDocs": true,
     "azureDevOps": true,
     "classifiedAs": "micro-change|sdd-full",
-    "classificationConfirmedByUser": true
+    "classificationConfirmedByUser": true,
+    "selectedProduct": "Fulfillment"
   },
   "status": "in-progress|completed|failed",
   "currentPhase": "classification|analysis|planning|execution|linking|completed",
@@ -640,7 +799,11 @@ El orquestador mantiene el estado del flujo escribiendo `tba-output/{nombre}/.tb
 
   // Solo para flowType: "sdd-full"
   "gates": {
-    "gate0": { "status": "approved", "challenges": 2 },
+    "gate0": {
+      "status": "approved",
+      "challenges": 2,
+      "contextualQuestionsAsked": ["frontend-design", "backend-data"]
+    },
     "gate1": { "status": "approved" },
     "gate2": { "status": "approved", "challenges": 1 },
     "gate3": { "status": "approved", "challenges": 3 },
@@ -650,18 +813,27 @@ El orquestador mantiene el estado del flujo escribiendo `tba-output/{nombre}/.tb
     "gate4": { "status": "completed" }
   },
   "trackA": {
-    "status": "completed",
+    "status": "completed|skipped|failed",
+    "skippedReason": "generateDocs: false",
     "stages": ["generate-requirements", "generate-wiki", "generate-ifao", "create-azure-workitems"]
   },
   "trackB": {
     "status": "completed",
     "branch": "feature/nombre-iniciativa",
-    "stages": ["create-branch", "implement-code", "commit", "checkpoint-approved", "push"]
+    "stages": ["create-branch", "implement-code", "commit", "checkpoint-approved", "push"],
+    "errors": [
+      {
+        "step": "create-branch|commit|push",
+        "error": "descripcion del error",
+        "timestamp": "2026-04-15T10:00:00Z",
+        "continued": true
+      }
+    ]
   },
   "inputs": {
     "prdSource": "pdf|md|text",
     "projectPath": "/path/to/project",
-    "producto": "nombre-producto",
+    "selectedProduct": "Fulfillment",
     "epicTitle": "titulo",
     "featureTitle": "titulo"
   }
@@ -680,8 +852,46 @@ El orquestador mantiene el estado del flujo escribiendo `tba-output/{nombre}/.tb
 | Error en implementacion | Mostrar reporte parcial, Track A continua |
 | Error en Track A | Track B continua independientemente |
 | Error en Track B | Track A continua independientemente |
+| Error en git-manager (create-branch) | Loguear en `trackB.errors[]`, continuar con code-implementor en rama actual |
+| Error en git-manager (commit) | Loguear en `trackB.errors[]`, continuar al CHECKPOINT con advertencia visible |
+| Error en git-manager (push) | Loguear en `trackB.errors[]`, reportar en Gate 4 con accion recomendada |
 | Error en Azure DevOps | Documentacion local disponible, informar |
 | Error en linking | No critico, informar y mostrar resumen sin links |
+
+---
+
+## Catalogo de Productos (referencia estatica)
+
+Los datos de productos estan embebidos aqui para que el orquestador sea autocontenido e independiente de rutas de archivo. Funciona correctamente tanto en instalacion local como global.
+
+```json
+{
+  "Fulfillment": {
+    "Product_Owner": ["Oscar Almaguer", "Isaias Garza", "Josue Marquez"],
+    "Scrum_Master": ["Rocio Garza"],
+    "Lideres_Tecnicos": ["David Morales", "Jose Roque Solis"],
+    "TBA": "Jose Baeza",
+    "organizacion": "hebmexico",
+    "product_type": "DIF",
+    "area_path": "Dev - Product and Technology\Fulfillment IMS",
+    "tba_proyecto": "Dev - Product and Technology",
+    "wiki_id": "Dev---Product-and-Technology.wiki"
+  },
+  "EcommAdmin": {
+    "Product_Owner": ["Oscar Almaguer", "Isaias Garza", "Josue Marquez"],
+    "Scrum_Master": ["Rocio Garza"],
+    "Lideres_Tecnicos": ["Alan Avila"],
+    "TBA": "Jose Baeza",
+    "organizacion": "hebmexico",
+    "product_type": "DIF",
+    "area_path": "Dev - Product and Technology\Admin OMS",
+    "tba_proyecto": "Dev - Product and Technology",
+    "wiki_id": "Dev---Product-and-Technology.wiki"
+  }
+}
+```
+
+**Nota de mantenimiento**: Cuando se agregue un nuevo producto, actualizar este catalogo Y el archivo `skills/create-azure-workitems/config/productos.json` en sincronizacion.
 
 ---
 
@@ -690,11 +900,15 @@ El orquestador mantiene el estado del flujo escribiendo `tba-output/{nombre}/.tb
 1. **Clasificar primero**: Siempre ejecutar el Classification Gate antes de cualquier otra accion.
 2. **Delegar siempre**: Toda ejecucion via `Agent()`. No invocar skills ni leer configs de skills.
 3. **Cuestionar siempre**: No aceptar input sin validar. Desafiar inconsistencias en cada gate.
-4. **Paralelismo maximo**: Track A y B en paralelo. No esperar innecesariamente.
-5. **Fallar independiente**: Un track fallido no mata al otro.
-6. **Control granular**: Gates de confirmacion en cada paso critico.
-7. **Nunca asumir**: Preguntar al usuario cuando hay ambiguedad.
-8. **Mejores practicas**: Advertir si el usuario quiere saltarse tests o ignorar arquitectura.
-9. **Transparencia**: Mensajes PRE/POST Agent() obligatorios con progreso visible.
-10. **Azure es opcional**: Nunca subir a Azure DevOps sin confirmacion explicita del usuario en esa sesion.
-11. **Push con consentimiento**: Nunca hacer push (ni en micro-change ni en SDD) sin aprobacion explicita.
+4. **Preguntar contexto especifico**: Si es frontend sin diseño o backend sin fuente de datos, bloquear y preguntar antes de continuar. No asumir ni inventar.
+5. **Documentacion es opcional**: `generateDocs` controla Track A. Si el usuario no quiere docs, omitir sin resistencia.
+6. **Producto desde catalogo**: Nunca pedir PO/SM/LTs manualmente. Usar el catalogo embebido y dejar seleccionar al usuario.
+7. **Paralelismo maximo**: Track A y B en paralelo (cuando aplica). No esperar innecesariamente.
+8. **Fallar independiente por tracks**: Un track fallido no mata al otro.
+9. **Fallar sin bloquear en Track B**: Los pasos de git-manager son non-blocking. Un fallo de git no detiene la implementacion ni el flujo paralelo.
+10. **Control granular**: Gates de confirmacion en cada paso critico.
+11. **Nunca asumir**: Preguntar al usuario cuando hay ambiguedad.
+12. **Mejores practicas**: Advertir si el usuario quiere saltarse tests o ignorar arquitectura.
+13. **Transparencia**: Mensajes PRE/POST Agent() obligatorios con progreso visible. Errores acumulados visibles en CHECKPOINT y Gate 4.
+14. **Azure es opcional**: Nunca subir a Azure DevOps sin confirmacion explicita del usuario en esa sesion.
+15. **Push con consentimiento**: Nunca hacer push (ni en micro-change ni en SDD) sin aprobacion explicita.

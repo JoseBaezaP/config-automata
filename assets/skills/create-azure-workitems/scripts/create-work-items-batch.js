@@ -1,23 +1,23 @@
 #!/usr/bin/env node
 
 /**
- * Script para crear work items en Azure DevOps en batch usando la API REST oficial
- * 
- * Uso:
- *   node create-work-items-batch.js <ruta-HUs.json> <organization> <project>
- * 
- * Ejemplo:
- *   node create-work-items-batch.js ./HUs.json "mi-org" "mi-proyecto"
- * 
- * NOTA: El PAT se carga automáticamente desde config/azure-pat.js
- * 
- * MEJORAS RECIENTES (para resolver problemas de vinculación Tasks ↔ User Stories):
- * - Validación de userStory.id antes de crear tasks
- * - Mejor manejo de errores en creación de tasks (no se detiene la ejecución)
- * - Validación de links antes de procesar (evita links con sourceId/targetId null/undefined)
- * - Logging detallado de errores de vinculación (muestra primeros 5 errores)
- * - Validación final de integridad (verifica que todas las tasks estén vinculadas)
- */
+* Script para crear work items en Azure DevOps en batch usando la API REST oficial
+* 
+* Uso:
+*   node create-work-items-batch.js <ruta-HUs.json> <organization> <project>
+* 
+* Ejemplo:
+*   node create-work-items-batch.js ./HUs.json "mi-org" "mi-proyecto"
+* 
+* NOTA: El PAT se carga automáticamente desde config/azure-pat.js
+* 
+* MEJORAS RECIENTES (para resolver problemas de vinculación Tasks ↔ User Stories):
+* - Validación de userStory.id antes de crear tasks
+* - Mejor manejo de errores en creación de tasks (no se detiene la ejecución)
+* - Validación de links antes de procesar (evita links con sourceId/targetId null/undefined)
+* - Logging detallado de errores de vinculación (muestra primeros 5 errores)
+* - Validación final de integridad (verifica que todas las tasks estén vinculadas)
+*/
 
 const https = require('https');
 const fs = require('fs');
@@ -73,8 +73,8 @@ if (!fs.existsSync(husFilePath)) {
 // ============================================================================
 
 /**
- * Realiza una petición HTTP a Azure DevOps API
- */
+* Realiza una petición HTTP a Azure DevOps API
+*/
 function azureDevOpsRequest(method, path, body = null) {
   return new Promise((resolve, reject) => {
     const auth = Buffer.from(`:${patToken}`).toString('base64');
@@ -127,8 +127,8 @@ function azureDevOpsRequest(method, path, body = null) {
 }
 
 /**
- * Crea un work item usando JSON Patch
- */
+* Crea un work item usando JSON Patch
+*/
 async function createWorkItem(workItemType, fields) {
   const operations = Object.entries(fields).map(([field, value]) => ({
     op: 'add',
@@ -147,8 +147,8 @@ async function createWorkItem(workItemType, fields) {
 }
 
 /**
- * Vincula dos work items (parent-child relationship)
- */
+* Vincula dos work items (parent-child relationship)
+*/
 async function linkWorkItems(sourceId, targetId, linkType = 'System.LinkTypes.Hierarchy-Forward') {
   const operations = [{
     op: 'add',
@@ -170,8 +170,8 @@ async function linkWorkItems(sourceId, targetId, linkType = 'System.LinkTypes.Hi
 }
 
 /**
- * Vincula múltiples work items en batch usando la API de batch update
- */
+* Vincula múltiples work items en batch usando la API de batch update
+*/
 async function linkWorkItemsBatch(links) {
   console.log(`🔗 Vinculando ${links.length} relaciones secuencialmente...`);
 
@@ -335,7 +335,9 @@ async function createWorkItemsFromHUs(husData, datosGenerales) {
       tasks.forEach((task, taskIndex) => {
         totalTasks++;
         if (!task.Titulo.includes('[QA]') && task.SugerenciaCodigo) {
-          task.Detalle += '<br><br><p class="editor-paragraph"><strong class="editor-text-bold">Sugerencia de codigo:</strong></p><p class="editor-paragraph"></p><pre><code>' + task.SugerenciaCodigo + '</code></pre>';
+          task.Detalle += '
+
+<p class="editor-paragraph"><strong class="editor-text-bold">Sugerencia de codigo:</strong></p><p class="editor-paragraph"></p><pre><code>' + task.SugerenciaCodigo + '</pre>';
         }
         const taskPromise = createWorkItem('Task', {
           'System.Title': task.Titulo,
@@ -472,3 +474,5 @@ async function main() {
 
 main();
 
+
+ </code>

@@ -138,21 +138,20 @@ describe('askProductoConfig', () => {
     expect(mockClack.text).not.toHaveBeenCalled();
   });
 
-  it('asks 6 required fields then skips optional when user declines', async () => {
+  it('asks 5 required fields then skips optional when user declines', async () => {
     mockClack.confirm
       .mockResolvedValueOnce(true)   // wants main config
       .mockResolvedValueOnce(false); // skips optional
     mockClack.text
       .mockResolvedValueOnce('Fulfillment')
       .mockResolvedValueOnce('Jose Baeza')
-      .mockResolvedValueOnce('hebmexico')
       .mockResolvedValueOnce('Dev - Product and Technology')
       .mockResolvedValueOnce('Dev - Product and Technology\\Fulfillment IMS')
       .mockResolvedValueOnce('Dev---Product-and-Technology.wiki');
 
     const result = await askProductoConfig();
 
-    expect(mockClack.text).toHaveBeenCalledTimes(6);
+    expect(mockClack.text).toHaveBeenCalledTimes(5);
     expect(result).toMatchObject({
       nombre: 'Fulfillment',
       tba: 'Jose Baeza',
@@ -168,7 +167,6 @@ describe('askProductoConfig', () => {
     mockClack.text
       .mockResolvedValueOnce('Fulfillment')
       .mockResolvedValueOnce('Jose Baeza')
-      .mockResolvedValueOnce('hebmexico')
       .mockResolvedValueOnce('Dev - Product and Technology')
       .mockResolvedValueOnce('Dev - Product and Technology\\Fulfillment IMS')
       .mockResolvedValueOnce('Dev---Product-and-Technology.wiki')

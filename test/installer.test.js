@@ -125,7 +125,7 @@ describe('installAssets — OpenCode (ESC-002)', () => {
 });
 
 describe('installAssets — GitHub Copilot (ESC-003)', () => {
-  it('installs Copilot agents, shared skills, and extras to correct paths', async () => {
+  it('installs Copilot agents and shared skills to correct paths', async () => {
     const result = await installAssets({ assistant: 'copilot', scope: 'project' });
 
     expect(result.copiedFiles.length).toBeGreaterThan(0);
@@ -134,16 +134,15 @@ describe('installAssets — GitHub Copilot (ESC-003)', () => {
     const agentsDir = path.join(tmpDir, '.github', 'agents');
     expect(fs.existsSync(agentsDir)).toBe(true);
 
+    const agentFiles = fs.readdirSync(agentsDir);
+    expect(agentFiles.length).toBeGreaterThan(0);
+
     // Verify skills dir
     const skillsDir = path.join(tmpDir, '.github', 'skills');
     expect(fs.existsSync(skillsDir)).toBe(true);
 
-    // Verify extras
-    const copilotInstructions = path.join(tmpDir, '.github', 'copilot-instructions.md');
-    expect(fs.existsSync(copilotInstructions)).toBe(true);
-
-    const vscodeSettings = path.join(tmpDir, '.vscode', 'settings.json');
-    expect(fs.existsSync(vscodeSettings)).toBe(true);
+    // Copilot no longer installs extra files (copilot-instructions.md / vscode-settings.json)
+    expect(result.copiedFiles.some((f) => f.includes('copilot-instructions'))).toBe(false);
   });
 });
 
@@ -387,12 +386,10 @@ describe('getDestinationPaths', () => {
     expect(paths.extras).toHaveLength(0);
   });
 
-  it('returns extras for copilot project scope', () => {
+  it('returns correct paths for copilot project scope (no extras)', () => {
     const paths = getDestinationPaths('copilot', 'project');
     expect(paths.agentsDir).toContain('.github');
     expect(paths.skillsDir).toContain('.github');
-    expect(paths.extras.length).toBeGreaterThan(0);
-    const extraSrcs = paths.extras.map((e) => e.src);
-    expect(extraSrcs.some((s) => s.includes('copilot-instructions'))).toBe(true);
+    expect(paths.extras).toHaveLength(0);
   });
 });

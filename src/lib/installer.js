@@ -59,16 +59,7 @@ export function getDestinationPaths(assistant, scope) {
       project: {
         agentsDir: path.join(base, '.github', 'agents'),
         skillsDir: path.join(base, '.github', 'skills'),
-        extras: [
-          {
-            src: 'copilot/copilot-instructions.md',
-            dest: path.join(base, '.github', 'copilot-instructions.md'),
-          },
-          {
-            src: 'copilot/vscode-settings.json',
-            dest: path.join(base, '.vscode', 'settings.json'),
-          },
-        ],
+        extras: [],
       },
     },
   };
@@ -123,7 +114,7 @@ export async function configureAzurePAT(skillsDir, pat, scope) {
 
   const content = await fsExtra.readFile(patFilePath, 'utf-8');
   const updated = content.replace(
-    /AZURE_DEVOPS_PAT:\s*"TU_PAT_AQUI"/,
+    /AZURE_DEVOPS_PAT:\s*"[^"]*"/,
     `AZURE_DEVOPS_PAT: "${pat.trim()}"`
   );
   await fsExtra.writeFile(patFilePath, updated, 'utf-8');
@@ -170,7 +161,7 @@ export async function configureProductos(skillsDir, config) {
         Scrum_Master: config.scrumMasters || [],
         Lideres_Tecnicos: config.lideresTecnicos || [],
         TBA: config.tba,
-        organizacion: config.organizacion,
+        organizacion: 'hebmexico',
         product_type: config.productType || '',
         area_path: config.areaPath.replace(/\\{2,}/g, '\\'),
         tba_proyecto: config.proyecto,
@@ -225,6 +216,52 @@ async function collectFiles(dir, relativeTo) {
   }
 
   return items;
+}
+
+/**
+ * Updates the embedded "Catalogo de Productos" JSON block inside the installed
+ * tba-orchestrator.md so it stays in sync with the user's configured producto.
+ *
+ * Only runs when the user provided a product config during install.
+ * Leaves the rest of the file intact — only replaces the JSON inside the catalog section.
+ *
+ * @param {string} agentsDir - Destination agents directory
+ * @param {object|null} config - Product config from askProductoConfig, or null to skip
+ * @returns {Promise<void>}
+ */
+export async function updateOrchestratorCatalog(agentsDir, config) {
+  if (!config || typeof config !== 'object' || !config.nombre) return;
+
+  const orchestratorPath = path.join(agentsDir, 'tba-orchestrator.md');
+  if (!(await fsExtra.pathExists(orchestratorPath))) return;
+
+  const content = await fsExtra.readFile(orchestratorPath, 'utf-8');
+
+  const productEntry = {
+    Product_Owner: config.productOwners || [],
+    Scrum_Master: config.scrumMasters || [],
+    Lideres_Tecnicos: config.lideresTecnicos || [],
+    TBA: config.tba || '',
+    organizacion: 'hebmexico',
+    product_type: config.productType || '',
+    area_path: config.areaPath || '',
+    tba_proyecto: config.proyecto || '',
+    wiki_id: config.wikiId || '',
+  };
+
+  const newCatalog = { [config.nombre]: productEntry };
+  // Keep single backslashes in area_path (JSON.stringify doubles them)
+  const newJson = JSON.stringify(newCatalog, null, 2).replace(/\\\\/g, '\\');
+
+  // Replace the JSON block inside ## Catalogo de Productos section
+  const updated = content.replace(
+    /(## Catalogo de Productos[\s\S]*?```json\s*\n)([\s\S]*?)(\n```)/,
+    '$1' + newJson + '\n$3'
+  );
+
+  if (updated !== content) {
+    await fsExtra.writeFile(orchestratorPath, updated, 'utf-8');
+  }
 }
 
 /**

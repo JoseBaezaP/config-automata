@@ -2,7 +2,7 @@ import * as clack from '@clack/prompts';
 import fsExtra from 'fs-extra';
 import { createRequire } from 'module';
 import { readManifest, writeManifest } from '../lib/manifest.js';
-import { installAssets, getDestinationPaths, configureAzurePAT, configureProductos } from '../lib/installer.js';
+import { installAssets, getDestinationPaths, configureAzurePAT, configureProductos, updateOrchestratorCatalog } from '../lib/installer.js';
 import {
   showHeader,
   selectAssistant,
@@ -118,6 +118,7 @@ export async function install() {
 
   // Step 8: Configure productos.json + symlink
   const { symlinked } = await configureProductos(skillsDir, productoConfig);
+  await updateOrchestratorCatalog(agentsDir, productoConfig);
   if (!symlinked) {
     showWarning(
       'No se pudo crear el symlink entre productos.json (requiere permisos en Windows).\n' +

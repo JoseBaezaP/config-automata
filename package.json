@@ -1,13 +1,13 @@
 {
   "name": "tba-agent",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "CLI interactivo para instalar TBA Agent en tu AI assistant",
   "type": "module",
   "engines": {
     "node": ">=18"
   },
   "bin": {
-    "tba-agent": "./bin/cli.js"
+    "tba-agent": "./bin/run.cjs"
   },
   "files": [
     "bin/",
