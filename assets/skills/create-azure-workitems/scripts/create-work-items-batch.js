@@ -335,9 +335,7 @@ async function createWorkItemsFromHUs(husData, datosGenerales) {
       tasks.forEach((task, taskIndex) => {
         totalTasks++;
         if (!task.Titulo.includes('[QA]') && task.SugerenciaCodigo) {
-          task.Detalle += '
-
-<p class="editor-paragraph"><strong class="editor-text-bold">Sugerencia de codigo:</strong></p><p class="editor-paragraph"></p><pre><code>' + task.SugerenciaCodigo + '</pre>';
+          task.Detalle += '\n\n<p class="editor-paragraph"><strong class="editor-text-bold">Sugerencia de codigo:</strong></p><p class="editor-paragraph"></p><pre><code>' + task.SugerenciaCodigo + '</pre>';
         }
         const taskPromise = createWorkItem('Task', {
           'System.Title': task.Titulo,
@@ -473,6 +471,3 @@ async function main() {
 }
 
 main();
-
-
- </code>

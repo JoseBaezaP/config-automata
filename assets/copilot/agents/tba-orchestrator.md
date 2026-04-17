@@ -875,7 +875,7 @@ Los datos de productos estan embebidos aqui para que el orquestador sea autocont
 }
 ```
 
-**Nota de mantenimiento**: Cuando se agregue un nuevo producto, actualizar este catalogo Y el archivo `skills/create-azure-workitems/config/productos.json` en sincronizacion.
+**Nota de mantenimiento**: Cuando se agregue un nuevo producto, actualizar este catalogo Y el archivo [productos.json](../../skills/create-azure-workitems/config/productos.json) en sincronizacion.
 
 ---
 

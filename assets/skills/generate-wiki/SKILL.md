@@ -31,7 +31,7 @@ Genera un documento Markdown de Requerimientos Tecnicos (TR.md) completo y profe
 
 ## Conversion HTML a Markdown
 
-Los campos de HUs.json (`Descripcion`, `CriteriosDeAceptacion`, `Detalle`) contienen HTML con clases CSS de Azure DevOps. El TR.md debe ser Markdown puro, asi que estos campos se convierten.
+Los campos de `implementation-plan.json` (`descripcion`, `criteriosAceptacion`, `contentGuidance`) son texto plano. El TR.md debe ser Markdown puro — no se requiere conversion HTML->MD.
 
 | HTML | Markdown |
 |------|----------|
@@ -40,9 +40,8 @@ Los campos de HUs.json (`Descripcion`, `CriteriosDeAceptacion`, `Detalle`) conti
 | `<ul><li>item</li></ul>` | `- item` |
 | `<br>` o `<br><br>` | `\n` |
 
-**Excepciones (NO convertir)**:
-- `SugerenciaCodigo`: Ya esta en markdown code blocks -> copiar directamente
-- Diagramas Mermaid: Ya usan `::: mermaid ... :::` -> copiar directamente
+**Excepcion**:
+- Diagramas Mermaid en Requirements.json: Ya usan `::: mermaid ... :::` -> copiar directamente
 
 ---
 
@@ -60,7 +59,7 @@ Los campos de HUs.json (`Descripcion`, `CriteriosDeAceptacion`, `Detalle`) conti
 
 Parrafo de 2-3 lineas sintetizando el proposito principal.
 
-**Fuente**: `HUs.json` -> descripcion general de las HUs + `Requirements.json` -> `integraciones_tecnicas.descripcion_tecnica`
+**Fuente**: `implementation-plan.json` -> `userStories[]` + `Requirements.json` -> `integraciones_tecnicas.descripcion_tecnica`
 
 ### 3. Datos Informativos
 
@@ -81,42 +80,47 @@ Tabla con los roles del equipo.
 
 ### 4. Historias de Usuario
 
-Para cada HU en `HUs.json`:
+Para cada user story en `implementation-plan.json` -> `userStories[]`:
 
 ```markdown
-### {N}. {HU.Titulo}
+### {N}. {userStory.titulo}
 
 **Descripcion:**
-{HU.Descripcion convertido HTML->MD}
+{userStory.descripcion}
 
 #### Criterios de Aceptacion
-{HU.CriteriosDeAceptacion convertido HTML->MD como lista}
+{userStory.criteriosAceptacion como lista Markdown (cada item es un bullet)}
 
 #### Tareas Tecnicas de Implementacion
 
-##### {N}.{M} {Tarea.Titulo}
+Para cada archivo en `implementationOrder[].files[]` donde `usReference == userStory.id`:
+
+##### {N}.{M} {file.purpose}
+
+**Capa**: {file.layer} | **Archivo**: `{file.path}`
 
 **Detalle:**
-{Tarea.Detalle convertido HTML->MD}
+{file.contentGuidance}
 
-{Tarea.SugerenciaCodigo copiado directamente si existe}
+{file.architectureNotes si existe}
 ```
 
 **Regla importante**: Las tareas `[QA]` se excluyen de esta seccion. Se muestran en la seccion 5. Esto es porque los escenarios QA tienen una estructura diferente (Gherkin) y es mas util tenerlos agrupados.
 
 ### 5. Escenarios de Prueba
 
-Recopilar todas las tareas `[QA]` de cada HU y presentarlas agrupadas:
+Leer los escenarios de `iniciativa.json` -> `grupos[].escenariosPrueba[]`. Para cada user story en `implementation-plan.json`, filtrar los escenarios cuyo `id` aparece en `userStory.escenariosPrueba[]`:
 
 ```markdown
 ## Escenarios de Prueba para las HUs
 
-### {N}. {HU.Titulo}
+### {N}. {userStory.titulo}
 
-Escenarios de prueba
+Para cada escenario en `grupos[].escenariosPrueba[]` donde el id esta en `userStory.escenariosPrueba`:
 
-#### {Titulo del escenario}
-{Detalle convertido HTML->MD, preservando estructura Gherkin Dado/Cuando/Entonces}
+#### {escenario.titulo} ({escenario.tipo})
+
+{escenario.gherkin — copiar el bloque Gherkin completo preservando indentacion y keywords Dado/Cuando/Entonces}
 ```
 
 ### 6. Solucion Tecnica y Arquitectura
@@ -179,11 +183,11 @@ Tabla derivada de `Requirements.json` -> `matriz_de_riesgos`:
 
 ### 10. Stack Tecnologico y APIs
 
-Dos subsecciones derivadas de `HUs.json`:
+Dos subsecciones derivadas de `implementation-plan.json` + `architecture-constraints.json`:
 
-**Tecnologias Involucradas**: Unificar todos los arrays `Tecnologias` de las HUs (sin duplicados).
+**Tecnologias Involucradas**: Unificar todos los arrays `tecnologias` de `userStories[]` (sin duplicados), complementar con `architecture-constraints.json` -> `projectContext.techStack`.
 
-**APIs y Eventos de Conexion**: Unificar todos los arrays `APIsDeConexion` de las HUs (sin duplicados).
+**APIs y Eventos de Conexion**: Unificar todos los arrays `apisInvolucradas` de `userStories[]` (sin duplicados).
 
 ---
 
@@ -192,14 +196,16 @@ Dos subsecciones derivadas de `HUs.json`:
 ### 1. Leer Entrada
 
 ```
-[Read: file_path="tba-output/{nombre}/HUs.json"]
+[Read: file_path="tba-output/{nombre}/implementation-plan.json"]
+[Read: file_path="tba-output/{nombre}/iniciativa.json"]
 [Read: file_path="tba-output/{nombre}/Requirements.json"]
+[Read: file_path="tba-output/{nombre}/architecture-constraints.json"]
 ```
 
 ### 2. Generar Documento
 
 Seguir la estructura de 10 secciones documentada arriba. Para cada seccion:
-1. Identificar la fuente de datos (HUs.json o Requirements.json)
+1. Identificar la fuente de datos (implementation-plan.json, iniciativa.json, o Requirements.json)
 2. Aplicar conversion HTML->MD donde aplique
 3. Formatear en Markdown puro
 
@@ -211,7 +217,6 @@ Seguir la estructura de 10 secciones documentada arriba. Para cada seccion:
 - Diagramas Mermaid con `::: mermaid ... :::` (NO ` ```mermaid ``` `)
 - NO hay tags HTML en el documento final (`<p class=`, `<strong class=`, `<ul>`, `<br>`)
 - Markdown valido (tablas, listas, headers correctos)
-- SugerenciaCodigo copiado tal cual (sin conversion)
 
 Guardar con `Write`:
 ```
@@ -224,7 +229,7 @@ Guardar con `Write`:
 
 | Error | Accion |
 |-------|--------|
-| HUs.json no existe | Reportar error, sugerir ejecutar generate-hus |
+| implementation-plan.json no existe | Reportar error, sugerir ejecutar plan-implementation |
 | Requirements.json no existe | Reportar error, sugerir ejecutar generate-requirements |
 | Sin configuracion de producto | Usar valores placeholder ("Pendiente de asignar") en Datos Informativos |
 | HTML residual en output | Revisar conversion y limpiar antes de guardar |
@@ -232,7 +237,9 @@ Guardar con `Write`:
 ## Conexion con Otros Skills
 
 **Input de**:
-- `generate-hus` -> HUs.json
+- `plan-implementation` -> implementation-plan.json
+- `analyze-initiative` -> iniciativa.json
+- `detect-architecture` -> architecture-constraints.json
 - `generate-requirements` -> Requirements.json
 - `config/productos.json` -> roles del equipo (copia local)
 

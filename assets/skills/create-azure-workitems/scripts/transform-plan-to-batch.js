@@ -96,6 +96,42 @@ function gherkinToHtml(escenarios, iniciativaPath) {
 }
 
 /**
+ * Mapea tipo de tarea conceptual (plan sin codigo) a tipo Azure DevOps
+ */
+function conceptualTipoToType(tipo) {
+  const t = (tipo || '').toLowerCase();
+  if (t === 'qa' || t.includes('test') || t === 'pruebas') return 'QA';
+  if (t === 'bd' || t.includes('migration') || t.includes('database')) return 'BD';
+  if (t === 'integracion' || t.includes('integ')) return 'INTEG';
+  if (t === 'frontend' || t === 'design-review' || t === 'desarrollo') return 'FRONT';
+  if (t === 'backend' || t === 'backend/cms' || t === 'cms' || t === 'configuracion' || t === 'deploy') return 'BACK';
+  return 'GENERAL';
+}
+
+/**
+ * Genera detalle HTML de una tarea conceptual (sin archivos de codigo)
+ */
+function conceptualTaskToDetail(task) {
+  let html = '';
+  if (task.descripcion) {
+    html += '<h3>Detalle</h3>';
+    html += task.descripcion.split('\n').map(l => `<p class="editor-paragraph">${l}</p>`).join('');
+  }
+  if (task.criteriosDone && task.criteriosDone.length > 0) {
+    html += '<h3>Criterios de Done</h3>';
+    html += '<ul>' + task.criteriosDone.map(c => `<li>${c}</li>`).join('') + '</ul>';
+  }
+  if (task.dependencias && task.dependencias.length > 0) {
+    html += '<h3>Dependencias</h3>';
+    html += '<ul>' + task.dependencias.map(d => `<li>${d}</li>`).join('') + '</ul>';
+  }
+  if (task.estimacion) {
+    html += `<p><strong>Estimacion:</strong> ${task.estimacion}</p>`;
+  }
+  return html;
+}
+
+/**
  * Mapea layer del plan a tipo de tarea Azure DevOps
  */
 function layerToTaskType(layer, purpose) {
@@ -196,7 +232,7 @@ function transform(planFilePath) {
 
   // Construir User Stories
   const historiasDeUsuario = plan.userStories.map((us, idx) => {
-    const usId = `HU-${String(idx + 1).padStart(3, '0')}`;
+    const usId = us.id;
 
     // Descripcion en HTML (Como/Quiero/Para)
     const descLines = (us.descripcion || '').split('\n');
@@ -213,15 +249,19 @@ function transform(planFilePath) {
       }
     }
 
-    // Recopilar archivos de este US desde implementationOrder
+    // Recopilar archivos de este US desde implementationOrder (solo aplica a planes con codigo)
     const usFiles = [];
-    for (const phase of plan.implementationOrder) {
-      for (const file of phase.files) {
-        if (file.usReference === us.id) {
+    for (const phase of (plan.implementationOrder || [])) {
+      for (const file of (phase.files || [])) {
+        const refs = (file.usReference || '').split(',').map(r => r.trim());
+        if (refs.includes(us.id)) {
           usFiles.push({ ...file, phaseName: phase.phaseName });
         }
       }
     }
+
+    // Soporte para multiples formatos de tareas conceptuales (tasks o tareasTecnicas)
+    const usTasks = us.tasks || us.tareasTecnicas || [];
 
     // Recopilar tests de este US
     const usTests = (plan.testPlan || []).filter(t => {
@@ -241,20 +281,38 @@ function transform(planFilePath) {
     const tipoOrder = ['BD', 'INTEG', 'BACK', 'FRONT', 'QA'];
     const tareas = [];
 
-    for (const tipo of tipoOrder) {
-      const files = tareasByType[tipo];
-      if (!files || files.length === 0) continue;
+    // Modo conceptual: tareas directas en us.tasks o us.tareasTecnicas (plan sin codigo)
+    const isConceptualPlan = usFiles.length === 0 &&
+      usTasks.length > 0 &&
+      typeof usTasks[0] === 'object';
 
-      if (tipo === 'QA') continue; // QA se maneja aparte
-
-      // Una tarea por archivo
-      for (const file of files) {
+    if (isConceptualPlan) {
+      for (const task of usTasks) {
+        const tipo = conceptualTipoToType(task.tipo);
+        if (tipo === 'QA') continue; // QA se maneja aparte via escenariosPrueba
         tareas.push({
           Tipo: tipo,
-          Titulo: `[${tipo}] ${file.purpose}`,
-          Detalle: fileToTaskDetail(file),
+          Titulo: task.titulo,
+          Detalle: conceptualTaskToDetail(task),
           SugerenciaCodigo: ''
         });
+      }
+    } else {
+      for (const tipo of tipoOrder) {
+        const files = tareasByType[tipo];
+        if (!files || files.length === 0) continue;
+
+        if (tipo === 'QA') continue; // QA se maneja aparte
+
+        // Una tarea por archivo
+        for (const file of files) {
+          tareas.push({
+            Tipo: tipo,
+            Titulo: `[${tipo}] ${file.purpose}`,
+            Detalle: fileToTaskDetail(file),
+            SugerenciaCodigo: ''
+          });
+        }
       }
     }
 

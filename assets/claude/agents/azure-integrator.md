@@ -43,6 +43,8 @@ Verificar que existan los archivos requeridos usando `Read` o `Glob`:
 
 Invocar el skill `create-azure-workitems` con todos los parámetros requeridos.
 
+**CRITICO: El agente NUNCA debe escribir `HUs_batch.json` manualmente**, aunque el prompt del orquestador incluya datos de HUs o tareas. El skill `create-azure-workitems` ejecuta el script `transform-plan-to-batch.js` via Bash, que lee `implementation-plan.json` y genera `HUs_batch.json` automaticamente. Confiar en el skill y en el script — no hacer shortcuts manuales.
+
 ### 3. Manejo de Errores
 
 Si el skill retorna error, propagarlo al orquestador.
@@ -118,8 +120,8 @@ Despues de crear work items exitosamente, guardar `tba-output/{nombre}/azure-wor
   "epicId": 12345,
   "featureId": 12346,
   "userStories": [
-    { "id": 12347, "title": "HU-01: Busqueda por CP", "huReference": "HU-01" },
-    { "id": 12348, "title": "HU-02: Reintento sin recarga", "huReference": "HU-02" }
+    { "id": 12347, "title": "US-001: Busqueda por CP", "huReference": "US-001" },
+    { "id": 12348, "title": "US-002: Visualizacion en mapa", "huReference": "US-002" }
   ],
   "tasks": [
     { "id": 12349, "title": "[BACK] Crear endpoint", "parentId": 12347 },

@@ -39,7 +39,7 @@ Leer ambos archivos JSON:
 ### 2. Mapear Commits a Work Items
 
 Para cada commit en `commit-log.json`:
-1. Extraer `huReferences` (ej: ["HU-01", "HU-02"])
+1. Extraer `huReferences` (ej: ["US-001", "US-002"])
 2. Buscar en `azure-workitems.json` los work item IDs correspondientes a esas HUs
 3. Si no hay match por HU, vincular al Feature ID como fallback
 

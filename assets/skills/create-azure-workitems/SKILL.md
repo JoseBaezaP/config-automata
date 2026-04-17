@@ -7,7 +7,7 @@ description: Crea la jerarquia completa de work items en Azure DevOps (Epic -> F
 
 ## Proposito
 
-Este skill toma las Historias de Usuario (HUs.json), documentacion tecnica (TR.md, IFAO.md) y crea la estructura completa en Azure DevOps:
+Este skill toma el plan de implementacion (implementation-plan.json), documentacion tecnica (TR.md, IFAO.md) y crea la estructura completa en Azure DevOps:
 
 ```
 Epic
@@ -28,8 +28,8 @@ La razon por la que se usan scripts Node.js en lugar de llamadas directas a la A
 
 ## Cuando Usar
 
-- Despues de que **toda** la documentacion haya sido generada: HUs.json, TR.md, IFAO.md
-- Como paso final del flujo TBA (despues de generate-hus, generate-wiki, generate-ifao)
+- Despues de que **toda** la documentacion haya sido generada: implementation-plan.json, TR.md, IFAO.md
+- Como paso final del flujo TBA (despues de plan-implementation, generate-wiki, generate-ifao)
 
 ## Prerrequisitos
 
@@ -45,7 +45,7 @@ La razon por la que se usan scripts Node.js en lugar de llamadas directas a la A
 | `projectKey` | Usuario o orquestador | `"Fulfillment"`, `"EcommAdmin"` |
 | `nombre_iniciativa` | Iniciativa analizada | `"ajustes-mejoras-regresion"` |
 | `TBA_Iniciativa` | Titulo del Epic/Feature | `"Ajustes y Mejoras de Regresion"` |
-| `HUs.json` | generate-hus skill | `tba-output/{nombre}/HUs.json` |
+| `implementation-plan.json` | plan-implementation skill | `tba-output/{nombre}/implementation-plan.json` |
 | `TR.md` | generate-wiki skill | `tba-output/{nombre}/TR.md` |
 | `IFAO.md` | generate-ifao skill | `tba-output/{nombre}/IFAO.md` |
 
@@ -102,13 +102,13 @@ Extraer los campos necesarios. Es critico usar los nombres de campo correctos (s
 
 Para mas detalles ver [examples/config-validation.js](./examples/config-validation.js).
 
-### Paso 2: Transformar HUs.json a HUs_batch.json
+### Paso 2: Transformar implementation-plan.json a HUs_batch.json
 
-El script de creacion de work items necesita un formato extendido (`HUs_batch.json`) que incluye `DatosGenerales` (Epic title, Feature title, areaPath). El script `transform-hus-to-batch.js` convierte automaticamente el formato.
+El script de creacion de work items necesita un formato extendido (`HUs_batch.json`) que incluye `DatosGenerales` (Epic title, Feature title, areaPath) e `HistoriasDeUsuario` con sus `Tareas` por capa.
 
-**2.1** Verificar que existe `HUs.json`:
+**2.1** Verificar que existe `implementation-plan.json`:
 ```
-[Glob: pattern="HUs.json" path="tba-output/{nombre_iniciativa}"]
+[Glob: pattern="implementation-plan.json" path="tba-output/{nombre_iniciativa}"]
 ```
 
 **2.2** Crear un `HUs_batch.json` inicial con los DatosGenerales:
@@ -130,26 +130,20 @@ Usar `Write` para crear `tba-output/{nombre_iniciativa}/HUs_batch.json` con la e
 }
 ```
 
-**2.3** Ejecutar la transformacion (pasando la ruta del directorio como argumento):
-
-```bash
-node <skill_dir>/scripts/transform-hus-to-batch.js "tba-output/{nombre_iniciativa}"
-```
-
-Este script:
-- Recibe el directorio donde estan los archivos como primer argumento (ruta relativa o absoluta)
-- Lee `HUs.json` y preserva `DatosGenerales` del `HUs_batch.json` existente
-- Genera IDs secuenciales (HU-001, HU-002...)
-- Extrae tipo de tarea del titulo (`[BACK]` -> `"BACK"`)
-- Muestra estadisticas (total HUs, tareas por tipo)
-
-Para ver el formato completo del output: [examples/HUs-batch.json](./examples/HUs-batch.json)
-
-**Alternativa (flujo Automata)**: Si la fuente es `implementation-plan.json` (generado por plan-implementation), usar:
+**2.3** Ejecutar la transformacion:
 
 ```bash
 node <skill_dir>/scripts/transform-plan-to-batch.js "tba-output/{nombre_iniciativa}/implementation-plan.json"
 ```
+
+Este script:
+- Lee `implementation-plan.json` y detecta `userStories[]` + `implementationOrder[]` + `testPlan[]`
+- Mapea layers (`domain`, `infrastructure`, `application`, `presentation`, `test`) a tipos de tarea (`BACK`, `INTEG`, `FRONT`, `QA`, `BD`)
+- Genera IDs secuenciales (HU-001, HU-002...)
+- Preserva `DatosGenerales` del `HUs_batch.json` existente
+- Muestra estadisticas (total HUs, tareas por tipo)
+
+Para ver el formato completo del output: [examples/HUs-batch.json](./examples/HUs-batch.json)
 
 ### Paso 2.5: Enrichment (automatico)
 
@@ -253,8 +247,8 @@ Para diagnostico detallado: [examples/troubleshooting.md](./examples/troubleshoo
 | Script | Proposito | Ubicacion |
 |--------|----------|-----------|
 | `create-work-items-batch.js` | Crea Epic, Feature, US, Tasks en batch | [scripts/](./scripts/create-work-items-batch.js) |
-| `transform-hus-to-batch.js` | Convierte HUs.json -> HUs_batch.json (con enrichment) | [scripts/](./scripts/transform-hus-to-batch.js) |
 | `transform-plan-to-batch.js` | Convierte implementation-plan.json -> HUs_batch.json (con enrichment) | [scripts/](./scripts/transform-plan-to-batch.js) |
+| `transform-hus-to-batch.js` | (legacy) Convierte HUs.json -> HUs_batch.json | [scripts/](./scripts/transform-hus-to-batch.js) |
 | `upload-to-wiki.js` | Sube TR.md e IFAO.md al Wiki | [scripts/](./scripts/upload-to-wiki.js) |
 
 Documentacion completa de scripts: [scripts/README.md](./scripts/README.md)
@@ -262,7 +256,7 @@ Documentacion completa de scripts: [scripts/README.md](./scripts/README.md)
 ## Conexion con Otros Skills
 
 **Input de**:
-- `generate-hus` -> `HUs.json`
+- `plan-implementation` -> `implementation-plan.json`
 - `generate-wiki` -> `TR.md`
 - `generate-ifao` -> `IFAO.md`
 

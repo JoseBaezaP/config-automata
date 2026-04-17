@@ -75,13 +75,11 @@ Para cada `phase` en `implementationOrder`:
 **Si `action: "create"`:**
 1. Verificar que el directorio padre existe (crear si no)
 2. Leer `contentGuidance` y `architectureNotes` del plan
-3. Leer `SugerenciaCodigo` de la tarea referenciada en HUs.json (si existe)
-4. Escribir el archivo siguiendo:
+3. Escribir el archivo siguiendo:
    - Patrones observados en archivos similares
    - Reglas de `architecture-constraints.json`
    - Guidance del plan
-   - Sugerencia de codigo de la HU (como base, no copiar ciegamente)
-5. Validar que el archivo cumple con `criticalRules`
+4. Validar que el archivo cumple con `criticalRules`
 
 **Si `action: "modify"`:**
 1. Leer el archivo existente completo

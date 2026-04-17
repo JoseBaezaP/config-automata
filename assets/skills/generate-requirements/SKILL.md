@@ -78,15 +78,26 @@ La razon de separar esto en un skill independiente (en vez de generarlo inline e
 ### 1. Leer Entrada
 
 ```
-[Read: file_path="tba-output/{nombre}/HUs.json"]
-[Read: file_path="tba-output/{nombre}/project-context.md"]  // si existe
+[Read: file_path="tba-output/{nombre}/implementation-plan.json"]
+[Read: file_path="tba-output/{nombre}/iniciativa.json"]
+[Read: file_path="tba-output/{nombre}/architecture-constraints.json"]
 ```
 
-Extraer de cada HU:
-- `Tecnologias` -> stack tecnologico
-- `APIsDeConexion` -> endpoints e integraciones
-- `Tareas` -> tipos de trabajo ([BD], [BACK], [FRONT], [INTEG], [QA])
-- `CriteriosDeAceptacion` -> restricciones funcionales
+Extraer de `implementation-plan.json`:
+- `userStories[].tecnologias` -> stack tecnologico
+- `userStories[].apisInvolucradas` -> endpoints e integraciones
+- `implementationOrder[].files[].layer` -> tipos de trabajo (domain, infrastructure, application, presentation, test)
+- `userStories[].criteriosAceptacion` -> restricciones funcionales
+
+Extraer de `iniciativa.json`:
+- `grupos[].escenariosPrueba[].gherkin` -> escenarios de prueba
+- `elementos[].reglasNegocio` -> reglas de negocio
+- `elementos[].notasTecnicas` -> notas tecnicas con endpoints
+
+Extraer de `architecture-constraints.json`:
+- `projectContext.stackTecnologico` -> tech stack detallado
+- `projectContext.integrations` -> integraciones existentes
+- `criticalRules` -> restricciones arquitectonicas
 
 ### 2. Requerimientos No Funcionales
 
@@ -94,12 +105,12 @@ Generar un texto descriptivo para cada una de las 6 dimensiones. Cada texto debe
 
 | Dimension | Que analizar | Fuentes |
 |-----------|-------------|---------|
-| **Rendimiento** | Tiempos de respuesta esperados, volumen de datos, concurrencia | Tareas [BACK], [BD], criterios de aceptacion |
-| **Seguridad** | Autenticacion, autorizacion, proteccion de datos, compliance | Tareas [BACK] con auth/guards, integraciones externas |
-| **Fiabilidad** | Tolerancia a fallos, reintentos, fallbacks, logs | Tareas [INTEG], criterios que mencionan errores |
-| **Usabilidad** | Accesibilidad, responsive, UX, feedback al usuario | Tareas [FRONT], criterios de UI |
-| **Mantenimiento** | Modularidad, testing, documentacion, desacoplamiento | Arquitectura del proyecto, tareas [QA] |
-| **Escalabilidad** | Crecimiento de datos, usuarios, nuevas funcionalidades | Volumen de entidades, integraciones futuras |
+| **Rendimiento** | Tiempos de respuesta esperados, volumen de datos, concurrencia | files con layer domain/infrastructure, criteriosAceptacion |
+| **Seguridad** | Autenticacion, autorizacion, proteccion de datos, compliance | files con layer infrastructure + auth, integraciones externas |
+| **Fiabilidad** | Tolerancia a fallos, reintentos, fallbacks, logs | apisInvolucradas, criterios que mencionan errores |
+| **Usabilidad** | Accesibilidad, responsive, UX, feedback al usuario | files con layer presentation/routing, criterios de UI |
+| **Mantenimiento** | Modularidad, testing, documentacion, desacoplamiento | architecture-constraints.json criticalRules, testPlan |
+| **Escalabilidad** | Crecimiento de datos, usuarios, nuevas funcionalidades | Volumen de userStories, integraciones futuras |
 
 **Ejemplo bueno** (especifico):
 ```
@@ -113,7 +124,7 @@ Generar un texto descriptivo para cada una de las 6 dimensiones. Cada texto debe
 
 ### 3. Integraciones Tecnicas
 
-Analizar todas las tareas `[INTEG]` y `APIsDeConexion` de las HUs para construir:
+Analizar `userStories[].apisInvolucradas` y files con `layer: "infrastructure"` del `implementationOrder` para construir:
 
 - **descripcion_tecnica**: Parrafo que describe el landscape de integraciones
 - **sistemas_involucrados**: Array de objetos con sistema, tipo (REST, FTP, SMTP, Queue, etc.) y endpoint
@@ -121,7 +132,7 @@ Analizar todas las tareas `[INTEG]` y `APIsDeConexion` de las HUs para construir
 - **flujos_de_datos**: Como se mueven los datos entre sistemas
 - **autenticacion_y_autorizacion**: Mecanismos de seguridad entre sistemas (JWT, API Keys, OAuth, etc.)
 
-Si existe `project-context.md`, usarlo para enriquecer con:
+Usar `architecture-constraints.json` -> `projectContext.integrations` para enriquecer con:
 - HTTP clients reales del proyecto (axios, HttpService, fetch)
 - Patrones de integracion existentes
 - Message queues o event systems ya implementados
@@ -230,14 +241,14 @@ Mostrar resumen: cantidad de riesgos por clasificacion, dimensiones cubiertas, i
 
 | Error | Accion |
 |-------|--------|
-| HUs.json no existe | Reportar error, sugerir ejecutar generate-hus primero |
-| HUs.json sin APIsDeConexion | Generar integraciones basicas del stack tecnologico |
-| HUs.json sin tareas [INTEG] | Seccion integraciones basada solo en APIsDeConexion |
+| implementation-plan.json no existe | Reportar error, sugerir ejecutar plan-implementation primero |
+| userStories sin apisInvolucradas | Generar integraciones basicas del stack en architecture-constraints.json |
+| Sin files con layer infrastructure | Seccion integraciones basada solo en apisInvolucradas |
 | Mermaid con sintaxis invalida | Verificar y corregir antes de guardar |
 
 ## Conexion con Otros Skills
 
-**Input de**: `generate-hus` -> HUs.json, `analyze-with-project` -> project-context.md (opcional)
+**Input de**: `plan-implementation` -> implementation-plan.json, `analyze-initiative` -> iniciativa.json, `detect-architecture` -> architecture-constraints.json
 
 **Output para**:
 - `generate-wiki` -> usa Requirements.json para secciones tecnicas del TR.md

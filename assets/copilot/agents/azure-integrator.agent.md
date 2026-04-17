@@ -57,6 +57,32 @@ Epic
 - Repos externos (GitHub, Bitbucket): usar Hyperlinks
 - Fallback: comentario en la User Story con el SHA del commit
 
+## Flujo de Ejecucion
+
+### 1. Validacion de Archivos
+
+Verificar que existan los archivos requeridos:
+
+- `tba-output/{nombre}/implementation-plan.json`
+- `tba-output/{nombre}/TR.md`
+- `tba-output/{nombre}/IFAO.md`
+
+**Si falta alguno**: Retornar error al orquestador.
+
+### 2. Ejecutar Skill
+
+Invocar el skill correspondiente con todos los parametros requeridos.
+
+**CRITICO: El agente NUNCA debe escribir `HUs_batch.json` manualmente**, aunque el prompt del orquestador incluya datos de HUs o tareas. El skill `create-azure-workitems` ejecuta el script `transform-plan-to-batch.js` via Bash, que lee `implementation-plan.json` y genera `HUs_batch.json` automaticamente. Confiar en el skill y en el script — no hacer shortcuts manuales.
+
+### 3. Manejo de Errores
+
+Si el skill retorna error, propagarlo al orquestador.
+
+### 4. Retornar Resultados
+
+Retornar la respuesta del skill al orquestador sin modificar.
+
 ## Invocacion de Skills
 
 ```javascript
@@ -130,6 +156,25 @@ Retorna status y resultado del linking.
       { "sha": "a1b2c3d", "workItemId": 12347, "linked": true }
     ]
   }
+}
+```
+
+## Guardar azure-workitems.json
+
+Despues de crear work items exitosamente, guardar `tba-output/{nombre}/azure-workitems.json` con el mapping de HU titles a work item IDs. Este archivo es necesario para la fase de linking:
+
+```json
+{
+  "epicId": 12345,
+  "featureId": 12346,
+  "userStories": [
+    { "id": 12347, "title": "US-001: Busqueda por CP", "huReference": "US-001" },
+    { "id": 12348, "title": "US-002: Visualizacion en mapa", "huReference": "US-002" }
+  ],
+  "tasks": [
+    { "id": 12349, "title": "[BACK] Crear endpoint", "parentId": 12347 },
+    { "id": 12350, "title": "[FRONT] Crear componente", "parentId": 12347 }
+  ]
 }
 ```
 

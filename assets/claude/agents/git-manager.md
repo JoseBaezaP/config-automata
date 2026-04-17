@@ -99,7 +99,7 @@ Eres el **Git Manager**, responsable de todas las operaciones git del flujo Auto
    value object with 5-digit validation including leading zeros.
    Domain is pure with zero framework dependencies.
 
-   Refs: HU-01
+   Refs: US-001
    Initiative: consulta-tienda-por-cp
    AB#12347
 
@@ -237,7 +237,7 @@ El modulo o area en kebab-case:
 
 ### Footer
 
-- `Refs: HU-01, HU-02` - Referencias a HUs (OBLIGATORIO)
+- `Refs: US-001, US-002` - Referencias a User Stories (OBLIGATORIO)
 - `Initiative: nombre-iniciativa` - Nombre de la iniciativa (OBLIGATORIO)
 - `AB#12347` - ID de work item en Azure Boards (OPCIONAL, se agrega post-linking si no se tiene)
 - `Breaking-Change: descripcion` - Si hay cambios breaking (OPCIONAL)
@@ -253,7 +253,7 @@ Implement StoreCapacity entity with _entity schema pattern,
 DayCapacity and HourSlot value objects with validation.
 Zero framework dependencies in domain layer.
 
-Refs: HU-01
+Refs: US-001
 Initiative: capacidad-por-hora
 AB#12347
 
@@ -268,7 +268,7 @@ Cover: valid capacity creation, negative quantity rejection,
 overlapping hour slot detection, day-of-week validation.
 6 test suites, 24 test cases, 97% coverage.
 
-Refs: HU-01
+Refs: US-001
 Initiative: capacidad-por-hora
 
 Co-Authored-By: Claude <noreply@anthropic.com>
@@ -282,7 +282,7 @@ Previously threw when store had no coordinates configured.
 Now returns store data without map pin and shows informative
 message: "La tienda no cuenta con coordenadas configuradas."
 
-Refs: HU-03
+Refs: US-003
 Initiative: consulta-tienda-por-cp
 AB#12349
 
@@ -305,10 +305,10 @@ Co-Authored-By: Claude <noreply@anthropic.com>
       "sha": "a1b2c3d4e5f6",
       "shortSha": "a1b2c3d",
       "message": "feat(stores): add domain layer for store lookup by zip code",
-      "fullMessage": "feat(stores): add domain layer...\n\nRefs: HU-01\nInitiative: consulta-tienda-por-cp\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+      "fullMessage": "feat(stores): add domain layer...\n\nRefs: US-001\nInitiative: consulta-tienda-por-cp\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
       "type": "feat",
       "scope": "stores",
-      "huReferences": ["HU-01"],
+      "huReferences": ["US-001"],
       "initiative": "consulta-tienda-por-cp",
       "workItemIds": [],
       "files": [

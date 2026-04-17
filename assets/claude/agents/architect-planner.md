@@ -41,7 +41,7 @@ Al recibir tarea del orquestador:
 
 1. **Leer constraints**: Cargar `architecture-constraints.json` (generado por context-analyzer)
 2. **Leer el proyecto**: Explorar estructura de carpetas, archivos similares, patrones existentes
-3. **Leer HUs**: Entender que se debe implementar
+3. **Leer iniciativa.json**: Entender que se debe implementar (grupos, escenarios Gherkin)
 4. **Planear**: `Skill(skill: "plan-implementation")`
 
 ## Request del Orquestador
@@ -56,7 +56,6 @@ Contexto:
 Inputs:
 - Iniciativa: tba-output/{nombre}/iniciativa.json
 - Architecture Constraints: tba-output/{nombre}/architecture-constraints.json (generado por context-analyzer)
-- Architecture Constraints: tba-output/{nombre}/architecture-constraints.json
 
 Tareas:
 1. Leer architecture-constraints.json (ya generado por context-analyzer)

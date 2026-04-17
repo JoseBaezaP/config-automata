@@ -56,8 +56,10 @@ El IFAO tiene exactamente 8 secciones separadas por `---`. Cada seccion tiene un
 ### 1. Leer Entrada
 
 ```
-[Read: file_path="tba-output/{nombre}/HUs.json"]
+[Read: file_path="tba-output/{nombre}/implementation-plan.json"]
+[Read: file_path="tba-output/{nombre}/iniciativa.json"]
 [Read: file_path="tba-output/{nombre}/Requirements.json"]
+[Read: file_path="tba-output/{nombre}/architecture-constraints.json"]
 ```
 
 Opcionalmente leer productos.json si se proporciono `projectKey`:
@@ -71,16 +73,16 @@ Opcionalmente leer productos.json si se proporciono `projectKey`:
 
 Parrafo de 3-5 oraciones que responda:
 - Que busca la iniciativa (objetivo principal)
-- Stack tecnologico principal (extraer de `HUs.json` -> `Tecnologias`)
+- Stack tecnologico principal (extraer de `architecture-constraints.json` -> `projectContext.techStack`)
 - Integraciones clave (extraer de `Requirements.json` -> `integraciones_tecnicas`)
 
-**Fuente de datos**: HUs.json (Tecnologias, APIsDeConexion) + Requirements.json (integraciones_tecnicas)
+**Fuente de datos**: implementation-plan.json (userStories[].tecnologias, userStories[].apisInvolucradas) + architecture-constraints.json (projectContext.techStack) + Requirements.json (integraciones_tecnicas)
 
 #### Seccion 2: Alcance del PRD
 
 Tabla con dos columnas: `Objetivo` y `Alcance Principal`.
 
-Derivar una fila por cada HU en HUs.json. El titulo de la HU se convierte en Objetivo, y la descripcion resumida en Alcance Principal.
+Derivar una fila por cada entry en `implementation-plan.json` -> `userStories[]`. El `titulo` se convierte en Objetivo, y la `descripcion` resumida en Alcance Principal.
 
 | Objetivo | Alcance Principal |
 |----------|------------------|
@@ -92,7 +94,7 @@ Derivar una fila por cada HU en HUs.json. El titulo de la HU se convierte en Obj
 ##### 3.1 Integraciones
 
 Tabla con los endpoints e integraciones encontrados. Extraer de:
-- `HUs.json` -> `APIsDeConexion` de cada HU
+- `implementation-plan.json` -> `userStories[].apisInvolucradas`
 - `Requirements.json` -> `integraciones_tecnicas.sistemas_involucrados`
 
 **Regla critica**: NO inventar endpoints ni URLs. Solo incluir los que aparecen explicitamente en los datos de entrada. Si un sistema se menciona pero no tiene URL, poner "No especificado".
@@ -225,7 +227,7 @@ Guardar con `Write`:
 
 | Error | Accion |
 |-------|--------|
-| HUs.json no existe | Reportar error, sugerir ejecutar generate-hus primero |
+| implementation-plan.json no existe | Reportar error, sugerir ejecutar plan-implementation primero |
 | Requirements.json no existe | Reportar error, sugerir ejecutar generate-requirements primero |
 | 0 riesgos en matriz | Generar al menos 3 riesgos basicos (tecnico, funcional, seguridad) |
 | Sin tareas [BD] | Seccion 3.2 dice "No aplica" con explicacion |
@@ -234,7 +236,9 @@ Guardar con `Write`:
 ## Conexion con Otros Skills
 
 **Input de**:
-- `generate-hus` -> HUs.json
+- `plan-implementation` -> implementation-plan.json
+- `analyze-initiative` -> iniciativa.json
+- `detect-architecture` -> architecture-constraints.json
 - `generate-requirements` -> Requirements.json
 - `create-azure-workitems/config/productos.json` -> roles (opcional)
 

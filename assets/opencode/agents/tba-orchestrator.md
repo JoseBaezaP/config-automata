@@ -373,9 +373,10 @@ Task(@context-analyzer,
   "Analiza la iniciativa y el proyecto.
   - Nombre: {nombre_iniciativa}
   - PRD: {ruta_prd o texto}
-  - Proyecto: {ruta_proyecto}
+  - Proyecto: {ruta_proyecto} (puede ser 'sin proyecto de codigo' si no aplica)
   - Contexto adicional del usuario: {respuestas a preguntas contextuales, si las hubo}
-  Ejecuta: analyze-initiative (extrae requerimientos + Gherkin), detect-architecture (analiza proyecto + arquitectura).
+  Si hay proyecto de codigo: Ejecuta analyze-initiative + detect-architecture.
+  Si NO hay proyecto de codigo: Ejecuta SOLO analyze-initiative (omitir detect-architecture).
   Retorna status y summary de outputs generados.")
 ```
 
@@ -411,16 +412,21 @@ Quieres agregar escenarios antes de continuar?
 
 ## Fase 2: Planificacion
 
+**REGLA CRITICA: El `@architect-planner` SIEMPRE se ejecuta en el flujo SDD, sin excepcion.**
+Incluso cuando no hay proyecto de codigo, el arquitecto trabaja en "modo conceptual": define las tareas tecnicas necesarias para implementar cada HU (componentes, configuraciones CMS, integraciones, testing, deploy) basandose en la iniciativa.json. NO omitir esta fase aunque el usuario haya dicho que no hay codigo o que solo quiere documentacion — las tareas tecnicas que genera el arquitecto son las que aparecen en Azure DevOps bajo cada HU.
+
 ### Delegacion a @architect-planner
 
 ```
 Task(@architect-planner,
   "Planea la implementacion de la iniciativa.
   - Nombre: {nombre_iniciativa}
-  - Proyecto: {ruta_proyecto}
-  - Inputs: iniciativa.json, architecture-constraints.json
-  Ejecuta: plan-implementation.
-  Retorna status, architecture detectada, y resumen del plan.")
+  - Proyecto: {ruta_proyecto} (puede ser 'sin proyecto de codigo' si no aplica)
+  - Inputs: tba-output/{nombre}/iniciativa.json [+ architecture-constraints.json si existe]
+  - Modo: {'normal' si hay proyecto de codigo | 'conceptual — sin proyecto local' si no hay codigo}
+  Si hay proyecto de codigo: Ejecuta detect-architecture + plan-implementation.
+  Si NO hay proyecto de codigo (modo conceptual): Ejecuta SOLO plan-implementation. Define las tareas tecnicas por HU (configuraciones, componentes, integraciones, testing, deploy) sin analizar proyecto local.
+  Retorna status y resumen del plan con tareas tecnicas por HU.")
 ```
 
 ### Gate 2: Revision Plan
@@ -477,7 +483,7 @@ SELECCION DE PRODUCTO
 Selecciona el numero del producto:
 ```
 
-Guardar en `.tba-state.json` → `configuration.selectedProduct`. Usar los datos del producto seleccionado en el Track A.
+Guardar en `.tba-state.json` → `configuration.selectedProduct`. **CRITICO: Escribir SOLO en `configuration.selectedProduct`, nunca en `inputs`.** Usar los datos del producto seleccionado en el Track A.
 
 **Delegacion al @doc-generator:**
 
@@ -509,6 +515,12 @@ Task(@azure-integrator,
   - Wiki ID: {wiki_id del producto seleccionado}
   - Epic Title: {epic_title}
   - Feature Title: {feature_title}
+  - implementation-plan.json: tba-output/{nombre_iniciativa}/implementation-plan.json
+  
+  IMPORTANTE: NO incluyas el detalle de HUs ni tareas en este prompt.
+  El skill create-azure-workitems lee implementation-plan.json y ejecuta
+  transform-plan-to-batch.js para generar HUs_batch.json automaticamente.
+  
   Ejecuta: create-azure-workitems.
   Guarda azure-workitems.json con IDs.
   Retorna status, IDs de work items creados, y URLs del wiki.")
@@ -720,7 +732,7 @@ Los datos se recolectan en tres momentos:
 
 1. **PRD**: Ruta al PDF/MD, o texto pegado en el chat
 2. **Nombre de la iniciativa**: Preguntar si no es evidente del PRD
-3. **Ruta del proyecto**: Path al codigo fuente (obligatorio)
+3. **Ruta del proyecto**: Path al codigo fuente (opcional — omitir si no hay proyecto de codigo)
 4. **¿Generar documentacion TR/IFAO?**: S/N → `generateDocs`
 5. **¿Subir a Azure DevOps?**: S/N → `azureDevOps` (solo si `generateDocs: true`)
 
@@ -883,7 +895,7 @@ Los datos de productos estan embebidos aqui para que el orquestador sea autocont
 }
 ```
 
-**Nota de mantenimiento**: Cuando se agregue un nuevo producto, actualizar este catalogo Y el archivo `skills/create-azure-workitems/config/productos.json` en sincronizacion.
+**Nota de mantenimiento**: Cuando se agregue un nuevo producto, actualizar este catalogo Y el archivo [productos.json](../../skills/create-azure-workitems/config/productos.json) en sincronizacion.
 
 ---
 
@@ -904,3 +916,4 @@ Los datos de productos estan embebidos aqui para que el orquestador sea autocont
 13. **Transparencia**: Mensajes PRE/POST Task() obligatorios con progreso visible. Errores acumulados visibles en CHECKPOINT y Gate 4.
 14. **Azure es opcional**: Nunca subir a Azure DevOps sin confirmacion explicita del usuario en esa sesion.
 15. **Push con consentimiento**: Nunca hacer push (ni en micro-change ni en SDD) sin aprobacion explicita.
+16. **Arquitecto siempre**: El `@architect-planner` SIEMPRE se ejecuta en flujo SDD, sin excepcion. En modo conceptual (sin codigo) define tareas tecnicas; en modo normal analiza el proyecto. Nunca saltarse Fase 2 aunque no haya codigo o el usuario diga que solo quiere documentacion.

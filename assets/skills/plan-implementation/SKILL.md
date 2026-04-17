@@ -134,13 +134,118 @@ Antes de guardar:
 - Los commits cubren todos los archivos
 - No hay violaciones de `dependencyRule` ni `criticalRules`
 
+**Modo conceptual — validacion adicional de tipos:**
+- Cada `tasks[].tipo` usa EXCLUSIVAMENTE uno de los valores validos: `"backend"`, `"frontend"`, `"bd"`, `"integracion"`, `"design-review"`, `"qa"`, `"deploy"`
+- Si alguna tarea tiene un tipo diferente (ej: `"desarrollo"`, `"configuracion"`, `"pruebas"`), corregirlo antes de guardar
+- Verificar que el titulo de cada tarea tiene el prefijo correcto: `[BACK]`, `[BD]`, `[FRONT]`, `[INTEG]`, `[DESIGN]`, `[QA]`, `[DEPLOY]`
+
 ```
 [Write: tba-output/{nombre}/implementation-plan.json]
 ```
 
 ---
 
-## Estructura del JSON de Salida
+## Modo Conceptual (sin proyecto de codigo)
+
+Cuando NO existe `architecture-constraints.json` o el orquestador indica que no hay proyecto de codigo, el skill opera en **modo conceptual**. En este modo:
+
+- **NO** se generan `implementationOrder` ni `testPlan` (no hay archivos reales que crear)
+- Las tareas tecnicas se definen directamente en cada `userStory.tasks[]`
+- El objetivo es generar las tareas que apareceran en Azure DevOps bajo cada HU
+
+### Schema en Modo Conceptual
+
+**CRITICO: Usar EXACTAMENTE estos nombres de campo y valores de `tipo`.** El script `transform-plan-to-batch.js` depende de este schema para generar el `HUs_batch.json` correctamente.
+
+```json
+{
+  "iniciativa": "nombre-de-la-iniciativa",
+  "branch": "feature/nombre-de-la-iniciativa",
+  "detectedArchitecture": "conceptual",
+  "planningMode": "conceptual",
+  "notes": "Plan conceptual — sin proyecto de codigo local. Las tareas definen el trabajo tecnico de cada HU.",
+  "totalUserStories": 4,
+  "totalTasks": 22,
+
+  "userStories": [
+    {
+      "id": "US-001",
+      "grupoRef": "GRUPO-001",
+      "titulo": "Nombre de la HU",
+      "descripcion": "Como [rol]\nQuiero [accion]\nPara [beneficio]",
+      "criteriosAceptacion": ["Criterio 1", "Criterio 2"],
+      "escenariosPrueba": ["ESC-001", "ESC-002"],
+      "tecnologias": ["VTEX CMS", "React"],
+      "apisInvolucradas": [],
+      "estimacionTotal": "8 SP",
+      "tasks": [
+        {
+          "id": "TASK-001",
+          "titulo": "[CMS] Configurar Content Type en VTEX",
+          "tipo": "backend",
+          "descripcion": "Descripcion detallada de lo que hay que hacer...",
+          "estimacion": "1 SP",
+          "dependencias": [],
+          "criteriosDone": [
+            "Content Type creado con todos los campos",
+            "Validaciones funcionando"
+          ]
+        },
+        {
+          "id": "TASK-002",
+          "titulo": "[FRONT] Desarrollar componente carousel mobile",
+          "tipo": "frontend",
+          "descripcion": "Descripcion detallada...",
+          "estimacion": "3 SP",
+          "dependencias": ["TASK-001"],
+          "criteriosDone": ["Componente renderiza correctamente"]
+        }
+      ]
+    }
+  ],
+
+  "commitPlan": [],
+  "summary": {
+    "totalUserStories": 4,
+    "totalTasks": 22,
+    "totalEstimation": "46 SP"
+  }
+}
+```
+
+### Valores validos para `tasks[].tipo`
+
+Equivalencias con las capas del modo con codigo:
+
+| `tipo` | Tipo Azure | Equivalente en modo codigo | Cuando usar |
+|--------|-----------|---------------------------|-------------|
+| `"backend"` | BACK | Domain + Application + Infrastructure | Logica de negocio, use cases, servicios, endpoints, configuracion de CMS/schema |
+| `"bd"` | BD | Domain (migraciones) | Cambios de esquema, DDL, scripts SQL, tablas nuevas, migraciones de BD |
+| `"frontend"` | FRONT | Presentation + Routing | Componentes UI, vistas, paginas, estilos, diseño responsive |
+| `"integracion"` | INTEG | Infrastructure (APIs externas) | Conexion con APIs de terceros, servicios externos, CMS como fuente de datos |
+| `"design-review"` | FRONT | — | Revision visual contra Figma/mockups (no tiene equivalente en modo codigo) |
+| `"qa"` | QA | Test | Pruebas funcionales, de integracion, visuales, cross-browser |
+| `"deploy"` | BACK | Infrastructure (ops) | Publicacion, configuracion de ambiente, entrega a produccion |
+
+**NUNCA usar** `"backend/cms"`, `"desarrollo"`, `"configuracion"`, `"pruebas"` u otros valores no listados — el script no los mapea correctamente.
+
+### Formato del titulo de cada tarea
+
+Siempre con prefijo entre corchetes que indica el tipo:
+
+```
+[BACK] Configurar Content Type Shortcuts en VTEX
+[BD]   Crear migracion de tabla productos
+[FRONT] Desarrollar componente Shortcuts Carousel mobile
+[INTEG] Integrar componente con datos del CMS
+[DESIGN] Revision de diseno vs Figma
+[QA] Testing funcional ESC-001 a ESC-010
+[DEPLOY] Publicacion en produccion y documentacion
+```
+
+---
+
+## Estructura del JSON de Salida (Modo con Codigo)
 
 ```json
 {

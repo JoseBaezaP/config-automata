@@ -60,7 +60,7 @@ Al recibir tarea del orquestador, invocar skills en orden secuencial:
 - `tba-output/{nombre}/implementation-plan.json` + `tba-output/{nombre}/iniciativa.json`
 
 **Output**:
-- `tba-output/{nombre}/requerimientos-no-funcionales.json`
+- `tba-output/{nombre}/Requirements.json`
 
 **Proceso**:
 1. Leer `implementation-plan.json` e `iniciativa.json`
@@ -75,7 +75,7 @@ Al recibir tarea del orquestador, invocar skills en orden secuencial:
 
 **Input**:
 - `tba-output/{nombre}/implementation-plan.json` + `tba-output/{nombre}/iniciativa.json`
-- `tba-output/{nombre}/requerimientos-no-funcionales.json`
+- `tba-output/{nombre}/Requirements.json`
 - Configuración de producto seleccionado (objeto JSON con roles)
 
 **Output**:
@@ -94,7 +94,7 @@ Al recibir tarea del orquestador, invocar skills en orden secuencial:
 
 **Input**:
 - `tba-output/{nombre}/implementation-plan.json` + `tba-output/{nombre}/iniciativa.json`
-- `tba-output/{nombre}/requerimientos-no-funcionales.json`
+- `tba-output/{nombre}/Requirements.json`
 - Configuración de producto seleccionado (objeto JSON con roles)
 
 **Output**:
@@ -116,7 +116,7 @@ Contexto:
 - Nombre de iniciativa: {nombre}
 
 Inputs:
-- HUs JSON: tba-output/{nombre}/HUs.json
+- Implementation Plan: tba-output/{nombre}/implementation-plan.json
 - Configuración de producto seleccionado:
   {
     "productName": "{productName}",
@@ -137,7 +137,7 @@ Skills a ejecutar en orden:
 3. generate-ifao (con productConfig)
 
 Outputs esperados:
-- tba-output/{nombre}/requerimientos-no-funcionales.json
+- tba-output/{nombre}/Requirements.json
 - tba-output/{nombre}/TR.md
 - tba-output/{nombre}/IFAO.md
 ```
@@ -148,7 +148,7 @@ Outputs esperados:
 {
   "status": "success",
   "outputs": {
-    "requirements": "tba-output/{nombre}/requerimientos-no-funcionales.json",
+    "requirements": "tba-output/{nombre}/Requirements.json",
     "tr": "tba-output/{nombre}/TR.md",
     "ifao": "tba-output/{nombre}/IFAO.md"
   },
@@ -164,7 +164,7 @@ Outputs esperados:
 
 ### Después de ejecutar generate-requirements
 
-- Archivo `requerimientos-no-funcionales.json` fue creado
+- Archivo `Requirements.json` fue creado
 - JSON es válido
 - Contiene sección `RequerimientosNoFuncionales`
 - Contiene sección `Diagramas` con sintaxis Mermaid válida
