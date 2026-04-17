@@ -91,7 +91,7 @@ export async function install() {
   let copiedFiles = [];
 
   try {
-    const result = await installAssets({ assistant, scope });
+    const result = await installAssets({ assistant, scope, preserveUserConfig: !!existingManifest });
     copiedFiles = result.copiedFiles;
     spinner.stop('Archivos copiados exitosamente.');
   } catch (err) {

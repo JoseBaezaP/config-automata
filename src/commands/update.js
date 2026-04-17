@@ -36,6 +36,7 @@ export async function update() {
     const result = await installAssets({
       assistant: manifest.assistant,
       scope: manifest.scope,
+      preserveUserConfig: true,
     });
     copiedFiles = result.copiedFiles;
     spinner.stop('Archivos actualizados exitosamente.');

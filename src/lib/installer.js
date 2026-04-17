@@ -4,6 +4,25 @@ import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import fsExtra from 'fs-extra';
 
+// Skill-relative paths that contain user config and must survive reinstalls/updates
+const PROTECTED_SKILL_PATHS = [
+  path.join('create-azure-workitems', 'config', 'azure-pat.js'),
+  path.join('create-azure-workitems', 'config', 'productos.json'),
+];
+
+/**
+ * Parses JSON that may contain raw (unescaped) backslashes in string values,
+ * as produced by our .replace(/\\\\/g, '\\') write convention for Windows paths.
+ * Escapes lone backslashes before parsing so JSON.parse doesn't throw.
+ * @param {string} str
+ * @returns {object}
+ */
+function parseStoredJson(str) {
+  // Escape backslashes not already part of a valid JSON escape sequence
+  const safe = str.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+  return JSON.parse(safe);
+}
+
 /**
  * Returns the absolute path to the assets/ directory bundled in this package.
  * Uses import.meta.url to resolve path relative to this file (ESM compatible).
@@ -191,6 +210,105 @@ export async function configureProductos(skillsDir, config) {
 }
 
 /**
+ * Adds or updates a product entry in the installed productos.json, merging with
+ * existing entries instead of replacing the entire file.
+ *
+ * Also updates the generate-wiki copy/symlink to stay in sync.
+ *
+ * @param {string} skillsDir - Destination skills directory
+ * @param {object} config - Product config from askProductoConfig
+ * @returns {Promise<void>}
+ */
+export async function addProductoToConfig(skillsDir, config) {
+  const primaryPath = path.join(skillsDir, 'create-azure-workitems', 'config', 'productos.json');
+  const wikiPath = path.join(skillsDir, 'generate-wiki', 'config', 'productos.json');
+
+  if (!(await fsExtra.pathExists(primaryPath))) return;
+
+  let existing = {};
+  try {
+    const raw = await fsExtra.readFile(primaryPath, 'utf-8');
+    existing = parseStoredJson(raw);
+  } catch {
+    existing = {};
+  }
+
+  existing[config.nombre] = {
+    Product_Owner: config.productOwners || [],
+    Scrum_Master: config.scrumMasters || [],
+    Lideres_Tecnicos: config.lideresTecnicos || [],
+    TBA: config.tba,
+    organizacion: 'hebmexico',
+    product_type: config.productType || '',
+    area_path: (config.areaPath || '').replace(/\\{2,}/g, '\\'),
+    tba_proyecto: config.proyecto,
+    wiki_id: config.wikiId,
+  };
+
+  const raw = JSON.stringify(existing, null, 2).replace(/\\\\/g, '\\');
+  await fsExtra.writeFile(primaryPath, raw, 'utf-8');
+
+  // If wiki path is not a symlink (Windows copy fallback), update it too
+  try {
+    const stats = await fs.lstat(wikiPath);
+    if (!stats.isSymbolicLink()) {
+      await fsExtra.writeFile(wikiPath, raw, 'utf-8');
+    }
+  } catch {
+    // wikiPath doesn't exist — nothing to do
+  }
+}
+
+/**
+ * Adds or updates a product entry in the installed tba-orchestrator.md catalog,
+ * merging with existing entries instead of replacing the entire catalog.
+ *
+ * @param {string} agentsDir - Destination agents directory
+ * @param {object} config - Product config from askProductoConfig
+ * @returns {Promise<void>}
+ */
+export async function addProductToOrchestratorCatalog(agentsDir, config) {
+  if (!config || typeof config !== 'object' || !config.nombre) return;
+
+  const orchestratorPath = path.join(agentsDir, 'tba-orchestrator.md');
+  if (!(await fsExtra.pathExists(orchestratorPath))) return;
+
+  const content = await fsExtra.readFile(orchestratorPath, 'utf-8');
+
+  const match = content.match(/(## Catalogo de Productos[\s\S]*?```json\s*\n)([\s\S]*?)(\n```)/);
+  if (!match) return;
+
+  let existingCatalog = {};
+  try {
+    existingCatalog = parseStoredJson(match[2]);
+  } catch {
+    existingCatalog = {};
+  }
+
+  existingCatalog[config.nombre] = {
+    Product_Owner: config.productOwners || [],
+    Scrum_Master: config.scrumMasters || [],
+    Lideres_Tecnicos: config.lideresTecnicos || [],
+    TBA: config.tba || '',
+    organizacion: 'hebmexico',
+    product_type: config.productType || '',
+    area_path: config.areaPath || '',
+    tba_proyecto: config.proyecto || '',
+    wiki_id: config.wikiId || '',
+  };
+
+  const newJson = JSON.stringify(existingCatalog, null, 2).replace(/\\\\/g, '\\');
+  const updated = content.replace(
+    /(## Catalogo de Productos[\s\S]*?```json\s*\n)([\s\S]*?)(\n```)/,
+    '$1' + newJson + '\n$3'
+  );
+
+  if (updated !== content) {
+    await fsExtra.writeFile(orchestratorPath, updated, 'utf-8');
+  }
+}
+
+/**
  * Collects all file paths recursively from a directory.
  * @param {string} dir - Base directory to collect from
  * @param {string} [relativeTo] - Base for relative path computation
@@ -268,14 +386,38 @@ export async function updateOrchestratorCatalog(agentsDir, config) {
  * Installs assets (agents + skills + optional extras) from the bundled assets/
  * directory to the correct destination paths based on assistant and scope.
  *
- * @param {{ assistant: ('claude'|'opencode'|'copilot'), scope: ('global'|'project') }} options
+ * When preserveUserConfig is true (used by update and re-install), protected
+ * config files (azure-pat.js, productos.json) and the orchestrator product
+ * catalog are backed up before copying and restored afterwards.
+ *
+ * @param {{ assistant: ('claude'|'opencode'|'copilot'), scope: ('global'|'project'), preserveUserConfig?: boolean }} options
  * @returns {Promise<{ copiedFiles: string[] }>}
  * @throws Will throw with code 'EACCES' if permission denied on destination
  */
-export async function installAssets({ assistant, scope }) {
+export async function installAssets({ assistant, scope, preserveUserConfig = false }) {
   const assetsDir = getAssetsDir();
   const { agentsDir, skillsDir, extras } = getDestinationPaths(assistant, scope);
   const { agentsSrc, skillsSrc } = getSourcePaths(assistant);
+
+  // --- Backup phase ---
+  const skillBackups = {};
+  let orchestratorCatalogBackup = null;
+
+  if (preserveUserConfig) {
+    for (const relPath of PROTECTED_SKILL_PATHS) {
+      const destFile = path.join(skillsDir, relPath);
+      if (await fsExtra.pathExists(destFile)) {
+        skillBackups[relPath] = await fsExtra.readFile(destFile, 'utf-8');
+      }
+    }
+
+    const orchPath = path.join(agentsDir, 'tba-orchestrator.md');
+    if (await fsExtra.pathExists(orchPath)) {
+      const orchContent = await fsExtra.readFile(orchPath, 'utf-8');
+      const match = orchContent.match(/(## Catalogo de Productos[\s\S]*?```json\s*\n)([\s\S]*?)(\n```)/);
+      if (match) orchestratorCatalogBackup = match[2];
+    }
+  }
 
   try {
     // Ensure destination directories exist
@@ -293,6 +435,43 @@ export async function installAssets({ assistant, scope }) {
       const srcPath = path.join(assetsDir, extra.src);
       await fsExtra.ensureDir(path.dirname(extra.dest));
       await fsExtra.copy(srcPath, extra.dest, { overwrite: true });
+    }
+
+    // --- Restore phase ---
+    if (preserveUserConfig) {
+      for (const [relPath, content] of Object.entries(skillBackups)) {
+        const destFile = path.join(skillsDir, relPath);
+        await fsExtra.ensureDir(path.dirname(destFile));
+        await fsExtra.writeFile(destFile, content, 'utf-8');
+      }
+
+      // Recreate symlink from generate-wiki → primary productos.json
+      const primaryPath = path.join(skillsDir, 'create-azure-workitems', 'config', 'productos.json');
+      const wikiPath = path.join(skillsDir, 'generate-wiki', 'config', 'productos.json');
+      if (await fsExtra.pathExists(primaryPath)) {
+        const relTarget = path.relative(path.dirname(wikiPath), primaryPath);
+        try {
+          await fsExtra.remove(wikiPath);
+          await fs.symlink(relTarget, wikiPath);
+        } catch (symlinkErr) {
+          if (symlinkErr.code === 'EPERM') {
+            await fsExtra.copy(primaryPath, wikiPath, { overwrite: true });
+          }
+        }
+      }
+
+      // Restore orchestrator catalog section
+      if (orchestratorCatalogBackup !== null) {
+        const orchPath = path.join(agentsDir, 'tba-orchestrator.md');
+        const newOrchContent = await fsExtra.readFile(orchPath, 'utf-8');
+        const restored = newOrchContent.replace(
+          /(## Catalogo de Productos[\s\S]*?```json\s*\n)([\s\S]*?)(\n```)/,
+          '$1' + orchestratorCatalogBackup + '\n$3'
+        );
+        if (restored !== newOrchContent) {
+          await fsExtra.writeFile(orchPath, restored, 'utf-8');
+        }
+      }
     }
 
     // Collect all copied files for reporting

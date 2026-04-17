@@ -3,6 +3,7 @@ import pc from 'picocolors';
 import { install } from '../src/commands/install.js';
 import { update } from '../src/commands/update.js';
 import { version } from '../src/commands/version.js';
+import { addProduct } from '../src/commands/add-product.js';
 
 process.on('SIGINT', () => {
   console.log('\nInstalacion cancelada.');
@@ -22,14 +23,18 @@ try {
     case 'version':
       await version();
       break;
+    case 'add-product':
+      await addProduct();
+      break;
     default:
       console.log(pc.yellow(`Comando desconocido: ${command}`));
       console.log('');
       console.log('Uso:');
-      console.log(`  ${pc.cyan('npx tba-agent')}              Instalar TBA Agent interactivamente`);
-      console.log(`  ${pc.cyan('npx tba-agent install')}      Instalar TBA Agent interactivamente`);
-      console.log(`  ${pc.cyan('npx tba-agent update')}       Actualizar instalacion existente`);
-      console.log(`  ${pc.cyan('npx tba-agent version')}      Mostrar version instalada y disponible`);
+      console.log(`  ${pc.cyan('npx tba-agent')}                 Instalar TBA Agent interactivamente`);
+      console.log(`  ${pc.cyan('npx tba-agent install')}         Instalar TBA Agent interactivamente`);
+      console.log(`  ${pc.cyan('npx tba-agent update')}          Actualizar instalacion existente`);
+      console.log(`  ${pc.cyan('npx tba-agent version')}         Mostrar version instalada y disponible`);
+      console.log(`  ${pc.cyan('npx tba-agent add-product')}     Agregar un nuevo producto/equipo a la configuracion`);
       process.exit(1);
   }
 } catch (err) {
