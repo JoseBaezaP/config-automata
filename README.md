@@ -14,6 +14,7 @@ CLI interactivo para instalar y mantener actualizado el ecosistema de agentes y 
 - [Agentes incluidos](#agentes-incluidos)
 - [Skills incluidas](#skills-incluidas)
 - [Configuración de Azure DevOps](#configuración-de-azure-devops)
+- [Agregar un producto/equipo](#agregar-un-productoquipo)
 - [Actualizar](#actualizar)
 - [Estructura de archivos instalados](#estructura-de-archivos-instalados)
 - [Consideraciones por sistema operativo](#consideraciones-por-sistema-operativo)
@@ -52,6 +53,7 @@ tba-agent
 | `npx github:jbaeza_hebgit/super-automata` | Instalar TBA Agent interactivamente |
 | `npx github:jbaeza_hebgit/super-automata install` | Instalar TBA Agent interactivamente |
 | `npx github:jbaeza_hebgit/super-automata update` | Actualizar una instalación existente |
+| `npx github:jbaeza_hebgit/super-automata add-product` | Agregar un nuevo producto/equipo a una instalación existente |
 | `npx github:jbaeza_hebgit/super-automata version` | Mostrar versión instalada y disponible |
 
 ---
@@ -228,6 +230,34 @@ Archivo: `{skillsDir}/create-azure-workitems/config/productos.json`
 > El `area_path` debe usar **un solo backslash** (`\`). El CLI lo normaliza automáticamente al guardar.
 
 Este archivo está enlazado con `generate-wiki/config/productos.json` mediante un symlink — editar uno actualiza el otro.
+
+---
+
+## Agregar un producto/equipo
+
+Si ya tienes TBA Agent instalado y necesitas agregar un nuevo producto o equipo sin reinstalar, usa:
+
+```bash
+npx github:jbaeza_hebgit/super-automata add-product
+```
+
+El comando detecta automáticamente la instalación existente (assistant y scope) y guía al usuario para configurar el nuevo producto:
+
+```
+◆ Nombre del producto/equipo:    Logistics
+◆ Tu nombre (TBA):               Jose Baeza
+◆ Organización Azure DevOps:     hebmexico
+◆ Proyecto Azure DevOps:         Dev - Product and Technology
+◆ Area Path:                     Dev - Product and Technology\Logistics
+◆ Wiki ID:                       Dev---Product-and-Technology.wiki
+```
+
+Al finalizar, el comando:
+
+1. **Agrega la nueva entrada** en `productos.json` de `create-azure-workitems` (y por symlink en `generate-wiki`) sin borrar los productos ya configurados.
+2. **Actualiza el catálogo** en `tba-orchestrator.md` para que el orquestador conozca el nuevo producto.
+
+> Si no existe una instalación previa, el comando lo indica y sugiere correr `install` primero.
 
 ---
 

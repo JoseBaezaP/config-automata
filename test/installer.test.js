@@ -117,7 +117,7 @@ describe('installAssets — OpenCode (ESC-002)', () => {
 
     await installAssets({ assistant: 'opencode', scope: 'global' });
 
-    const installedSkillsDir = path.join(tmpDir, '.opencode', 'skills');
+    const installedSkillsDir = path.join(tmpDir, '.config', 'opencode', 'skills');
     const installedSkills = fs.readdirSync(installedSkillsDir).sort();
 
     expect(installedSkills).toEqual(sharedSkills);

@@ -59,8 +59,8 @@ export function getDestinationPaths(assistant, scope) {
     },
     opencode: {
       global: {
-        agentsDir: path.join(base, '.opencode', 'agents'),
-        skillsDir: path.join(base, '.opencode', 'skills'),
+        agentsDir: path.join(base, '.config', 'opencode', 'agents'),
+        skillsDir: path.join(base, '.config', 'opencode', 'skills'),
         extras: [],
       },
       project: {
