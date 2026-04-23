@@ -1,7 +1,7 @@
 ---
 description: Documentation Generator - Genera documentacion tecnica completa (Requirements, TR.md, IFAO.md) a partir de la iniciativa, plan de implementacion y restricciones de arquitectura. Ejecuta tres skills en secuencia.
 mode: subagent
-model: github-copilot/claude-sonnet-4.6
+model: github-copilot/gpt-5.3-codex
 tools:
   write: true
   bash: true

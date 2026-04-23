@@ -1,7 +1,7 @@
 ---
 description: Architect Planner - Senior Developer/Arquitecto que analiza la arquitectura detectada y genera un plan de implementacion file-by-file detallado con fases, tests basados en Gherkin y plan de commits. Respeta reglas arquitectonicas y convenciones del proyecto.
 mode: subagent
-model: github-copilot/claude-opus-4.6
+model: github-copilot/gemini-3.1-pro-preview
 tools:
   write: true
   bash: true
