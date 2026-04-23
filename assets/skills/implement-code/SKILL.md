@@ -36,6 +36,17 @@ La separacion plan/implementacion existe porque:
 
 ## Proceso
 
+### 0. Detectar Modo Resume (si aplica)
+
+Si el prompt del orquestador incluye `Modo: resume`:
+
+1. Leer `tba-output/{nombre}/implementation-report.json` si existe
+2. Extraer la lista de archivos con `status: "created"` o `status: "modified"` del reporte previo
+3. Estos archivos ya existen — **omitirlos** en el paso 3 para no sobreescribir trabajo completado
+4. Solo procesar los archivos del plan que NO aparecen en el reporte previo (o que aparecen con status `"failed"` o `"pending"`)
+
+Si no existe `implementation-report.json` en modo resume: tratar como implementacion nueva completa.
+
 ### 1. Cargar Plan y Contexto
 
 ```
@@ -101,7 +112,9 @@ Despues de completar todos los archivos de una fase:
 
 ### 4. Implementar Tests (Fase 6)
 
-Los tests son especiales porque traducen Gherkin a codigo:
+**Si `includeTests: false` (modo MVP)**: Omitir esta seccion completamente. No generar ningun archivo de test. El `testPlan` del plan de implementacion se conserva para uso futuro pero no se ejecuta ahora. Registrar en el report: `"testsMode": "skipped-mvp"`.
+
+**Si `includeTests: true`**: Los tests son especiales porque traducen Gherkin a codigo:
 
 #### Traduccion Gherkin -> Test
 
@@ -240,7 +253,8 @@ Si durante la implementacion se detecta un problema con el plan:
 
 **Post-implementacion**:
 - Todos los archivos del plan fueron creados/modificados
-- Tests ejecutados y resultados registrados
+- Si `includeTests: true`: Tests ejecutados y resultados registrados
+- Si `includeTests: false`: Fase de tests omitida (modo MVP) — registrar `"testsMode": "skipped-mvp"` en el report
 - `implementation-report.json` generado con status final
 - No hay archivos huerfanos (creados pero no en el plan)
 

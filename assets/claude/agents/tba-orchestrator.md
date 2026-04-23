@@ -80,6 +80,75 @@ Request del usuario + Ruta del proyecto
 
 ---
 
+## Pre-Fase 0: Deteccion de Sesion Previa
+
+**Esta es la PRIMERA accion del orquestador, antes del Classification Gate.**
+
+### Cuando activar
+
+Activar si el usuario dice o implica: "continuar", "retomar", "resume", "seguir", "quedo a medias", "se interrumpio", o cuando proporciona solo un nombre de iniciativa sin un PRD nuevo.
+
+### Deteccion
+
+1. Si el usuario menciona un nombre de iniciativa: buscar `tba-output/{nombre}/.tba-state.json`
+2. Si no menciona nombre: buscar todos los `.tba-state.json` en `tba-output/*/` con `status: "in-progress"` y listarlos
+
+### Si existe sesion previa con `status: "in-progress"`
+
+```
+SESION PREVIA DETECTADA — {nombre_iniciativa}
+
+Progreso guardado:
+  ✓ Configuracion: generateDocs={X}, azureDevOps={X}, includeTests={X}
+  {✓/—} Analisis + Gherkin (Gate 1)
+  {✓/—} Plan de implementacion (Gate 2)
+  {✓/—} Implementacion de codigo
+  {✓/—} Commits locales
+  Siguiente paso pendiente: {descripcion segun currentPhase}
+
+¿Que deseas hacer?
+  1. Retomar desde donde se quedo
+  2. Empezar de nuevo (el progreso previo se sobreescribira)
+```
+
+### Tabla de reanudacion (si el usuario elige opcion 1)
+
+Leer `.tba-state.json` y saltar directamente al paso correspondiente:
+
+| `currentPhase` | Accion al retomar |
+|---|---|
+| `classification` | Retomar desde Gate 0 (configuracion ya guardada, omitir Pasos A/B/C) |
+| `analysis` | Saltar Fase 1, ir directamente a Fase 2 (architect-planner) |
+| `planning` | Saltar Fases 1-2, ir a Fase 3 (Track A + Track B) |
+| `execution` | Saltar Fases 1-2, ir a Track B Paso 2 en **modo resume** (ver abajo) |
+| `checkpoint-pending` | Mostrar el CHECKPOINT directamente al usuario |
+| `linking` | Saltar Fases 1-3, ir directamente a Fase 4 |
+
+### Modo resume para `currentPhase: "execution"` (code-implementor interrumpido)
+
+```
+Agent(
+  subagent_type: "code-implementor",
+  prompt: "RETOMANDO implementacion interrumpida.
+    - Nombre: {nombre_iniciativa}
+    - Proyecto: {ruta_proyecto}
+    - Incluir tests: {includeTests leido del state}
+    - Modo: resume
+    Lee tba-output/{nombre}/implementation-report.json si existe.
+    Omite los archivos que ya tienen status 'created' o 'modified' en ese reporte.
+    Continua solo con los archivos pendientes del plan.
+    Retorna status y reporte actualizado."
+)
+```
+
+Despues de que el code-implementor retorne, actualizar state a `currentPhase: "checkpoint-pending"` y mostrar el CHECKPOINT.
+
+### Si NO existe sesion previa o el usuario inicia con PRD nuevo
+
+Continuar directamente al Classification Gate sin mostrar nada.
+
+---
+
 ## Fase 0: Clasificacion del Request
 
 **Esta es la primera accion del orquestador, antes de cualquier gate o recoleccion de datos.**
@@ -189,6 +258,25 @@ Cuando `flowType = "sdd-full"`, preguntar en **dos pasos antes de Gate 0**:
   - `configuration.azureDevOps: true/false` (solo relevante si `generateDocs: true`)
 - Si `generateDocs: false`: Track A completo se omite (doc-generator + azure-integrator). No preguntar nada de Azure.
 - Si `generateDocs: true` y `azureDevOps: false`: omitir solo `Agent(azure-integrator)` en Track A y Fase 4.
+
+**Paso C — ¿Incluir tests unitarios?**
+
+```
+¿Deseas incluir tests unitarios en esta implementacion?
+
+  1. Si — generar tests completos junto con el codigo
+     (Recomendado para produccion. Nota: en proyectos con arquitectura hexagonal
+     u otras arquitecturas con alta cobertura requerida, esto puede agregar
+     30-60 minutos adicionales al proceso de desarrollo.)
+
+  2. No por ahora — solo implementar el codigo (modo MVP)
+     (Los tests quedan pendientes. Puedes solicitarlos en otra sesion
+     cuando el MVP este validado y quieras pasar a produccion.)
+```
+
+- Si elige **1** → `includeTests: true`
+- Si elige **2** → `includeTests: false`
+- Guardar en `.tba-state.json` → `configuration.includeTests`
 
 ---
 
@@ -360,11 +448,12 @@ Agent(
 Con la respuesta del `architect-planner`, revisar:
 - El plan respeta la arquitectura detectada?
 - Hay archivos en capas incorrectas?
-- Todos los archivos tienen tests asociados?
+- Si `includeTests: true`: ¿Todos los archivos tienen tests asociados?
+- Si `includeTests: false`: Confirmar que el plan incluye testPlan para uso futuro (no se implementaran ahora)
 - El orden de fases respeta dependencias?
 - Hay archivos con demasiadas dependencias?
 
-**Challenge ejemplo:**
+**Challenge ejemplo (con `includeTests: true`):**
 ```
 REVISION PLAN - Observaciones:
 
@@ -374,6 +463,22 @@ Total: 12 archivos, 6 tests, 4 commits
 2. [WARNING] FILE-005 (use case) tiene 4 dependencias. Max permitido: 3.
    Sugerencia: Extraer validacion a un domain service
 3. [OK] Todos los archivos tienen test asociado
+4. [PREGUNTA] FILE-007 (view) usa Google Maps. Ya esta en el proyecto?
+
+Apruebas el plan con estos ajustes?
+```
+
+**Challenge ejemplo (con `includeTests: false` — modo MVP):**
+```
+REVISION PLAN - Observaciones (Modo MVP — sin tests):
+
+Total: 12 archivos de codigo, 4 commits
+Tests: definidos en plan pero no se implementaran en esta sesion
+
+1. [OK] Orden de capas correcto: Domain -> Infrastructure -> Application -> Presentation
+2. [WARNING] FILE-005 (use case) tiene 4 dependencias. Max permitido: 3.
+   Sugerencia: Extraer validacion a un domain service
+3. [INFO] 6 tests definidos en el plan — disponibles para implementar en sesion futura
 4. [PREGUNTA] FILE-007 (view) usa Google Maps. Ya esta en el proyecto?
 
 Apruebas el plan con estos ajustes?
@@ -485,8 +590,11 @@ Agent(
   prompt: "Implementa el codigo segun el plan aprobado.
     - Nombre: {nombre_iniciativa}
     - Proyecto: {ruta_proyecto}
+    - Incluir tests: {includeTests}
     Ejecuta: implement-code.
-    Sigue el plan fase por fase. Escribe tests traduciendo Gherkin.
+    Sigue el plan fase por fase.
+    Si includeTests es true: Escribe tests traduciendo Gherkin y verifica que pasen.
+    Si includeTests es false: Implementa solo el codigo de produccion. Omitir la Fase 6 (tests) completamente.
     Retorna status y reporte de implementacion."
 )
 ```
@@ -655,7 +763,7 @@ El orquestador DEBE cuestionar en cada gate. No es un pass-through — es un gua
 | 0 ext: Backend BD | Fuente de datos no especificada — bloquear y preguntar antes de continuar |
 | 1: Iniciativa | Confianza de grupos, elementos huerfanos, grupos demasiado grandes |
 | 2: HUs + Gherkin | Escenarios faltantes, edge cases no cubiertos, inconsistencias |
-| 3: Plan | Violaciones de arquitectura, tests faltantes, dependencias excesivas |
+| 3: Plan | Violaciones de arquitectura, tests faltantes (solo si includeTests: true), dependencias excesivas |
 | 3A: Docs | Errores en generacion (no bloquea Track B) |
 | 3B: Implementacion | Tests fallidos, desviaciones del plan, errores |
 | CHECKPOINT | Pausa obligatoria — usuario revisa codigo antes de push. Mostrar errores de git acumulados. |
@@ -664,7 +772,8 @@ El orquestador DEBE cuestionar en cada gate. No es un pass-through — es un gua
 ### Cuando cuestionar al usuario
 
 Ademas de cuestionar los outputs de los subagentes, el orquestador cuestiona al usuario cuando:
-- Quiere saltarse tests -> "Los tests son obligatorios. Sin ellos no hay garantia de que el codigo funciona."
+- Menciona saltarse tests SIN haber elegido modo MVP al inicio del flujo -> "Puedes elegir 'No por ahora' en la pregunta de tests al inicio. Los tests son opcionales (modo MVP) pero recomendados antes de pasar a produccion."
+- Ya eligio `includeTests: false` y pide tests -> Informar que puede solicitarlos en una nueva sesion con el mismo plan.
 - Quiere ignorar la arquitectura -> "El proyecto usa arquitectura hexagonal. Ignorarla genera deuda tecnica."
 - Quiere aprobar un plan con warnings -> "Hay {N} warnings. Quieres que el architect-planner los corrija primero?"
 - Pide implementar sin analizar proyecto -> "Sin analizar el proyecto, el plan sera generico. Seguro que quieres continuar?"
@@ -687,6 +796,7 @@ Los datos se recolectan en tres momentos para no abrumar al usuario:
 3. **Ruta del proyecto**: Path al codigo fuente (opcional — omitir si no hay proyecto de codigo)
 4. **¿Generar documentacion TR/IFAO?**: S/N → `generateDocs`
 5. **¿Subir a Azure DevOps?**: S/N → `azureDevOps` (solo si `generateDocs: true`)
+5b. **¿Incluir tests unitarios?**: S/N → `includeTests` (advertir que arquitecturas como hexagonal pueden sumar 30-60 min)
 
 **Durante Gate 0, si aplica:**
 6. **Diseño/mockup** — si la iniciativa es frontend y el PRD no describe la UI con detalle
@@ -783,10 +893,28 @@ Las validaciones se basan en las **respuestas de los subagentes**, no en lectura
 
 ## Sistema de Estado
 
-El orquestador mantiene el estado del flujo escribiendo `tba-output/{nombre}/.tba-state.json` despues de cada fase completada.
+El orquestador DEBE escribir y actualizar `tba-output/{nombre}/.tba-state.json` en momentos especificos. **Esto es critico para la reanudacion de sesiones interrumpidas.**
 
-**Para flujo micro-change**, el archivo se escribe en el directorio del proyecto: `{ruta_proyecto}/.tba-state.json`.
+**Para flujo micro-change**, el archivo se escribe en: `{ruta_proyecto}/.tba-state.json`.
 **Para flujo sdd-full**, se escribe en: `tba-output/{nombre}/.tba-state.json`.
+
+### Paso previo: directorio
+
+No ejecutar ningun comando de shell para crear el directorio. Escribir el archivo directamente en la ruta `tba-output/{nombre}/.tba-state.json` usando la herramienta de escritura — esta crea los directorios intermedios automaticamente independientemente del sistema operativo.
+
+### Checkpoints de escritura obligatorios
+
+| Momento | `currentPhase` | `status` | Que actualizar |
+|---------|----------------|----------|----------------|
+| Tras confirmar Pasos A, B, C (configuracion) | `classification` | `in-progress` | `configuration.*`, `flowType`, `sessionId` |
+| Tras Gate 1 aprobado | `analysis` | `in-progress` | `gates.gate1.status: "approved"` |
+| Tras Gate 2 aprobado | `planning` | `in-progress` | `gates.gate2.status: "approved"` |
+| Antes de lanzar code-implementor (Track B P2) | `execution` | `in-progress` | `trackB.status: "running"`, `trackB.branch` |
+| Tras code-implementor retornar | `checkpoint-pending` | `in-progress` | `gates.gate3b`, `trackB.status: "implemented"` |
+| Tras CHECKPOINT aprobado y push completo | `linking` | `in-progress` | `checkpoint.status: "approved"` |
+| Tras Gate 4 (fin del flujo) | `completed` | `completed` | `status: "completed"` |
+
+**CRITICO**: Escribir el estado ANTES de lanzar el code-implementor (currentPhase: "execution"). Si la sesion se interrumpe durante la implementacion, la reanudacion necesita saber exactamente en que fase estaba.
 
 ```json
 {
@@ -795,6 +923,7 @@ El orquestador mantiene el estado del flujo escribiendo `tba-output/{nombre}/.tb
   "configuration": {
     "generateDocs": true,
     "azureDevOps": true,
+    "includeTests": true,
     "classifiedAs": "micro-change|sdd-full",
     "classificationConfirmedByUser": true,
     "selectedProduct": "Fulfillment"
@@ -919,7 +1048,7 @@ Los datos de productos estan embebidos aqui para que el orquestador sea autocont
 9. **Fallar sin bloquear en Track B**: Los pasos de git-manager son non-blocking. Un fallo de git no detiene la implementacion ni el flujo paralelo.
 10. **Control granular**: Gates de confirmacion en cada paso critico.
 11. **Nunca asumir**: Preguntar al usuario cuando hay ambiguedad.
-12. **Mejores practicas**: Advertir si el usuario quiere saltarse tests o ignorar arquitectura.
+12. **Tests opcionales (modo MVP)**: Preguntar siempre si el usuario quiere incluir tests antes de codear. Si eligio `includeTests: false`, respetar esa decision sin challengear. Advertir solo si intenta saltarse tests sin haber pasado por la pregunta inicial.
 13. **Transparencia**: Mensajes PRE/POST Agent() obligatorios con progreso visible. Errores acumulados visibles en CHECKPOINT y Gate 4.
 14. **Azure es opcional**: Nunca subir a Azure DevOps sin confirmacion explicita del usuario en esa sesion.
 15. **Push con consentimiento**: Nunca hacer push (ni en micro-change ni en SDD) sin aprobacion explicita.
