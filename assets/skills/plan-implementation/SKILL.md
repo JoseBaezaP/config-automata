@@ -39,6 +39,18 @@ La razon de separar planificacion de implementacion es que planear requiere razo
 
 Si `architecture-constraints.json` tiene `skillPath` y `referencePaths`, leer los archivos de referencia del skill para tener las convenciones completas.
 
+### 1.5 Detectar Modo de Ejecución
+
+Evaluar en cuál de estos tres modos operar:
+
+| Condición | Modo |
+|-----------|------|
+| `architectureType !== "unknown"` | **Con código existente** — usar arquitectura detectada |
+| `architectureType === "unknown"` Y hay ruta de proyecto | **Proyecto nuevo** — aplicar arquitectura seleccionada por el architect-planner |
+| Sin `architecture-constraints.json` | **Conceptual** — sin proyecto de código (ver sección al final) |
+
+**MODO PROYECTO NUEVO**: Si `architectureType === "unknown"`, el architect-planner ya habrá ejecutado la Selección de Arquitectura y documentado la decisión. Usar la estructura canónica de la arquitectura seleccionada (MVC, Screaming, Clean o Hexagonal) definida en el agente `architect-planner`. **NUNCA** generar estructura plana ad-hoc.
+
 ### 2. Construir User Stories desde Grupos
 
 Para cada grupo aprobado en `iniciativa.json` (donde `confianza >= 0.85` y `aprobado === true`):
@@ -94,12 +106,25 @@ Respetar `moduleCreationOrder` de architecture-constraints:
 | 5 | Routing | Pages, client wrappers, layouts |
 | 6 | Tests | Unit tests, integration tests, component tests |
 
-Si `architectureType` es "unknown", usar orden generico:
-1. Tipos de datos / Interfaces
-2. Servicios / Logica de negocio
-3. Controladores / Endpoints
-4. UI / Componentes
-5. Tests
+Si `architectureType` es `"unknown"` (proyecto nuevo), usar las fases de la arquitectura seleccionada por el architect-planner:
+
+**MVC**:
+1. Models / Tipos e interfaces
+2. Services / Lógica de negocio + lib/validaciones
+3. API Route Handlers (controladores)
+4. Components / UI
+5. Pages / Routing
+6. Tests
+
+**Screaming Architecture**:
+1. Shared types y utils
+2. Services y hooks por feature
+3. API Routes por feature
+4. Components por feature
+5. Pages / Routing
+6. Tests
+
+**PROHIBIDO**: Usar orden genérico plano (`src/types/`, `src/data/`, `src/lib/` mezclados) sin que correspondan a una arquitectura definida. Si no hay `architectureDecision`, el architect-planner debe haberlo calculado primero — reportar error si falta.
 
 ### 6. Planear Tests
 
@@ -256,6 +281,22 @@ Siempre con prefijo entre corchetes que indica el tipo:
   "totalTests": 4,
   "totalCommits": 4,
 
+  // Solo presente cuando isNewProject === true (architectureType era "unknown")
+  "architectureDecision": {
+    "isNewProject": true,
+    "selected": "mvc",
+    "reason": "Proyecto nuevo. Score: 6/12. 3 entidades, 4 HUs, 0 integraciones externas, 5 reglas de negocio.",
+    "complexityScore": 6,
+    "complexityBreakdown": {
+      "entities": 2,
+      "hus": 2,
+      "integrations": 0,
+      "businessRules": 2
+    },
+    "skillUsed": "built-in",
+    "alternativesConsidered": ["screaming"]
+  },
+
   "userStories": [
     {
       "id": "US-001",
@@ -331,6 +372,7 @@ Siempre con prefijo entre corchetes que indica el tipo:
 - `iniciativa.json` existe y tiene al menos 1 grupo aprobado
 - `architecture-constraints.json` existe
 - Cada grupo tiene al menos 1 escenario de prueba
+- Si `architectureType === "unknown"`: verificar que el architect-planner ejecutó la Selección de Arquitectura y hay una decisión clara antes de planificar
 
 **Post-planificacion**:
 - Cada archivo tiene `id`, `action`, `path`, `layer`, `usReference`
