@@ -1,7 +1,7 @@
 ---
 description: Documentation Generator - Genera documentacion tecnica completa (Requirements, TR.md, IFAO.md) a partir de la iniciativa, plan de implementacion y restricciones de arquitectura. Ejecuta tres skills en secuencia.
 mode: subagent
-model: Claude Sonnet 4.6
+model: gpt-5.4
 tools: [execute, read, edit, search, todo]
 ---
 

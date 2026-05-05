@@ -1,7 +1,7 @@
 ---
 description: Architect Planner - Senior Developer/Arquitecto que analiza la arquitectura detectada y genera un plan de implementacion file-by-file detallado con fases, tests basados en Gherkin y plan de commits. Respeta reglas arquitectonicas y convenciones del proyecto.
 mode: subagent
-model: Claude Opus 4.6
+model: gpt-5.3-codex
 tools: [execute, read, edit, search, todo]
 ---
 

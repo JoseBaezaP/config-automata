@@ -1,7 +1,7 @@
 ---
 description: Simple Implementor - Agente ligero para micro-changes puntuales (cambios de valor, texto, color, constante, imagen, threshold) que no requieren flujo SDD. Identifica el archivo exacto y aplica el cambio quirurgicamente. El orquestador coordina el commit y push posterior.
 mode: subagent
-model: Claude Sonnet 4.6
+model: claude-sonnet-4.6
 tools: [execute, read, edit, search, todo]
 ---
 

@@ -1,7 +1,7 @@
 ---
 description: Context Analyzer - Analiza iniciativas de negocio (PRD) para extraer requerimientos con Gherkin, y detecta la arquitectura del proyecto fuente para generar restricciones y contexto completo
 mode: subagent
-model: Claude Sonnet 4.6
+model: claude-sonnet-4.6
 tools: [execute, read, edit, search, todo]
 ---
 

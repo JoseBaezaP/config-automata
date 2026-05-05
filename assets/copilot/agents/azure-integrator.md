@@ -1,7 +1,7 @@
 ---
 description: Azure Integrator - Crea work items en Azure DevOps (Epic, Feature, User Stories, Tasks), sube documentacion tecnica al Wiki, y vincula commits a work items para trazabilidad completa
 mode: subagent
-model: Claude Sonnet 4.6
+model: claude-sonnet-4.6
 tools: [execute, read, edit, search, todo]
 ---
 

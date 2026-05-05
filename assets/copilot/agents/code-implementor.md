@@ -1,7 +1,7 @@
 ---
 description: Code Implementor - Ejecuta el plan de implementacion (implementation-plan.json) file por file, escribiendo codigo de produccion y opcionalmente tests (segun configuracion includeTests) que respetan la arquitectura detectada, mimetizan patrones existentes del proyecto, y traducen escenarios Gherkin a test cases reales.
 mode: subagent
-model: Claude Sonnet 4.6
+model: claude-sonnet-4.6
 tools: [execute, read, edit, search, todo]
 ---
 
@@ -53,6 +53,7 @@ skill(name: "Implement Code")
 **OBLIGATORIO**: Leer archivos similares existentes en el proyecto.
 
 Para cada capa que se va a implementar:
+
 1. Buscar archivos existentes en la misma capa con `Glob`
 2. Leer 2-3 archivos para entender:
    - Imports tipicos

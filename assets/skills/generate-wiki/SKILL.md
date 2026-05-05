@@ -1,5 +1,5 @@
 ---
-name: Generate Wiki (TR.md)
+name: generate-wiki
 description: Genera documentacion tecnica completa (TR.md) en formato Markdown a partir de la iniciativa, plan de implementacion, requerimientos y restricciones de arquitectura. El TR.md se sube al Wiki de Azure DevOps y es el documento principal de referencia tecnica. Desencadenar despues de generate-requirements, o cuando se necesite crear el documento de Requerimientos Tecnicos, generar el TR, o documentacion tecnica para el wiki.
 ---
 

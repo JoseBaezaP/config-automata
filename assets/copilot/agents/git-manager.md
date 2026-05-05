@@ -1,7 +1,7 @@
 ---
 description: Git Manager - Operaciones git seguras para el flujo Automata y micro-changes. Crea ramas feature, hace commits con Conventional Commits extendido referenciando HUs e initiative, y hace push al remoto solo con aprobacion explicita del usuario.
 mode: subagent
-model: Claude Sonnet 4.6
+model: claude-sonnet-4.6
 tools: [execute, read, edit, search, todo]
 ---
 
