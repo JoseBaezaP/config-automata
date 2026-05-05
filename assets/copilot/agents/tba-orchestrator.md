@@ -505,23 +505,32 @@ Task(@architect-planner,
 
 Con la respuesta del `@architect-planner`, revisar:
 
-- El plan respeta la arquitectura detectada?
+- El plan respeta la arquitectura detectada/seleccionada?
+- Si es proyecto nuevo: ¿Se documentó `architectureDecision` con el score de complejidad y la justificación?
 - Hay archivos en capas incorrectas?
 - Si `includeTests: true`: ¿Todos los archivos tienen tests asociados?
 - Si `includeTests: false`: Confirmar que el plan incluye testPlan para uso futuro (no se implementaran ahora)
 - El orden de fases respeta dependencias?
+- Hay archivos con demasiadas dependencias?
 
-**Challenge ejemplo (con `includeTests: true`):**
+**Challenge ejemplo (proyecto nuevo con `includeTests: true`):**
 
 ```
 REVISION PLAN - Observaciones:
 
 Total: 12 archivos, 6 tests, 4 commits
 
-1. [OK] Orden de capas correcto: Domain -> Infrastructure -> Application -> Presentation -> Tests
-2. [WARNING] FILE-005 (use case) tiene 4 dependencias. Max permitido: 3.
-   Sugerencia: Extraer validacion a un domain service
+ARQUITECTURA SELECCIONADA: MVC (proyecto nuevo)
+  Score de complejidad: 6/12
+  Razón: 3 entidades, 4 HUs, 0 integraciones externas, 5 reglas de negocio
+  Alternativas consideradas: Screaming Architecture
+
+1. [OK] Estructura MVC correcta: Models → Services → API Routes → Components → Pages → Tests
+2. [WARNING] FILE-005 (service) tiene 4 dependencias. Max permitido: 3.
+   Sugerencia: Extraer validación a módulo lib/validations separado
 3. [OK] Todos los archivos tienen test asociado
+4. [PREGUNTA] ¿Estás de acuerdo con MVC para esta iniciativa? Si la complejidad crece,
+   Screaming Architecture (score 6-8) sería la siguiente opción.
 
 Apruebas el plan con estos ajustes?
 ```
@@ -534,10 +543,13 @@ REVISION PLAN - Observaciones (Modo MVP — sin tests):
 Total: 12 archivos de codigo, 4 commits
 Tests: definidos en plan pero no se implementaran en esta sesion
 
+ARQUITECTURA: hexagonal (detectada en proyecto existente)
+
 1. [OK] Orden de capas correcto: Domain -> Infrastructure -> Application -> Presentation
 2. [WARNING] FILE-005 (use case) tiene 4 dependencias. Max permitido: 3.
    Sugerencia: Extraer validacion a un domain service
 3. [INFO] 6 tests definidos en el plan — disponibles para implementar en sesion futura
+4. [PREGUNTA] FILE-007 (view) usa Google Maps. Ya esta en el proyecto?
 
 Apruebas el plan con estos ajustes?
 ```
