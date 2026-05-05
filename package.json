@@ -1,6 +1,6 @@
 {
   "name": "tba-agent",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "description": "CLI interactivo para instalar TBA Agent en tu AI assistant",
   "type": "module",
   "engines": {
