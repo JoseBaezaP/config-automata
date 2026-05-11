@@ -260,8 +260,10 @@ export async function addProductoToConfig(skillsDir, config) {
 }
 
 /**
- * Adds or updates a product entry in the installed tba-orchestrator.md catalog,
- * merging with existing entries instead of replacing the entire catalog.
+ * Adds or updates a product entry in agentsDir/src/productos.json,
+ * merging with existing entries instead of replacing the entire file.
+ *
+ * The orchestrator reads this file at runtime — no longer embedded in tba-orchestrator.md.
  *
  * @param {string} agentsDir - Destination agents directory
  * @param {object} config - Product config from askProductoConfig
@@ -270,22 +272,22 @@ export async function addProductoToConfig(skillsDir, config) {
 export async function addProductToOrchestratorCatalog(agentsDir, config) {
   if (!config || typeof config !== 'object' || !config.nombre) return;
 
-  const orchestratorPath = path.join(agentsDir, 'tba-orchestrator.md');
-  if (!(await fsExtra.pathExists(orchestratorPath))) return;
+  const srcDir = path.join(agentsDir, 'src');
+  const productosPath = path.join(srcDir, 'productos.json');
 
-  const content = await fsExtra.readFile(orchestratorPath, 'utf-8');
+  await fsExtra.ensureDir(srcDir);
 
-  const match = content.match(/(## Catalogo de Productos[\s\S]*?```json\s*\n)([\s\S]*?)(\n```)/);
-  if (!match) return;
-
-  let existingCatalog = {};
-  try {
-    existingCatalog = parseStoredJson(match[2]);
-  } catch {
-    existingCatalog = {};
+  let existing = {};
+  if (await fsExtra.pathExists(productosPath)) {
+    try {
+      const raw = await fsExtra.readFile(productosPath, 'utf-8');
+      existing = parseStoredJson(raw);
+    } catch {
+      existing = {};
+    }
   }
 
-  existingCatalog[config.nombre] = {
+  existing[config.nombre] = {
     Product_Owner: config.productOwners || [],
     Scrum_Master: config.scrumMasters || [],
     Lideres_Tecnicos: config.lideresTecnicos || [],
@@ -297,15 +299,8 @@ export async function addProductToOrchestratorCatalog(agentsDir, config) {
     wiki_id: config.wikiId || '',
   };
 
-  const newJson = JSON.stringify(existingCatalog, null, 2).replace(/\\\\/g, '\\');
-  const updated = content.replace(
-    /(## Catalogo de Productos[\s\S]*?```json\s*\n)([\s\S]*?)(\n```)/,
-    '$1' + newJson + '\n$3'
-  );
-
-  if (updated !== content) {
-    await fsExtra.writeFile(orchestratorPath, updated, 'utf-8');
-  }
+  const newJson = JSON.stringify(existing, null, 2).replace(/\\\\/g, '\\');
+  await fsExtra.writeFile(productosPath, newJson, 'utf-8');
 }
 
 /**
@@ -337,11 +332,8 @@ async function collectFiles(dir, relativeTo) {
 }
 
 /**
- * Updates the embedded "Catalogo de Productos" JSON block inside the installed
- * tba-orchestrator.md so it stays in sync with the user's configured producto.
- *
- * Only runs when the user provided a product config during install.
- * Leaves the rest of the file intact — only replaces the JSON inside the catalog section.
+ * Writes the product config to agentsDir/src/productos.json during install.
+ * The orchestrator reads this file at runtime — no longer embedded in tba-orchestrator.md.
  *
  * @param {string} agentsDir - Destination agents directory
  * @param {object|null} config - Product config from askProductoConfig, or null to skip
@@ -350,10 +342,10 @@ async function collectFiles(dir, relativeTo) {
 export async function updateOrchestratorCatalog(agentsDir, config) {
   if (!config || typeof config !== 'object' || !config.nombre) return;
 
-  const orchestratorPath = path.join(agentsDir, 'tba-orchestrator.md');
-  if (!(await fsExtra.pathExists(orchestratorPath))) return;
+  const srcDir = path.join(agentsDir, 'src');
+  const productosPath = path.join(srcDir, 'productos.json');
 
-  const content = await fsExtra.readFile(orchestratorPath, 'utf-8');
+  await fsExtra.ensureDir(srcDir);
 
   const productEntry = {
     Product_Owner: config.productOwners || [],
@@ -368,18 +360,8 @@ export async function updateOrchestratorCatalog(agentsDir, config) {
   };
 
   const newCatalog = { [config.nombre]: productEntry };
-  // Keep single backslashes in area_path (JSON.stringify doubles them)
   const newJson = JSON.stringify(newCatalog, null, 2).replace(/\\\\/g, '\\');
-
-  // Replace the JSON block inside ## Catalogo de Productos section
-  const updated = content.replace(
-    /(## Catalogo de Productos[\s\S]*?```json\s*\n)([\s\S]*?)(\n```)/,
-    '$1' + newJson + '\n$3'
-  );
-
-  if (updated !== content) {
-    await fsExtra.writeFile(orchestratorPath, updated, 'utf-8');
-  }
+  await fsExtra.writeFile(productosPath, newJson, 'utf-8');
 }
 
 /**
@@ -401,7 +383,7 @@ export async function installAssets({ assistant, scope, preserveUserConfig = fal
 
   // --- Backup phase ---
   const skillBackups = {};
-  let orchestratorCatalogBackup = null;
+  let agentSrcBackup = null;
 
   if (preserveUserConfig) {
     for (const relPath of PROTECTED_SKILL_PATHS) {
@@ -411,11 +393,9 @@ export async function installAssets({ assistant, scope, preserveUserConfig = fal
       }
     }
 
-    const orchPath = path.join(agentsDir, 'tba-orchestrator.md');
-    if (await fsExtra.pathExists(orchPath)) {
-      const orchContent = await fsExtra.readFile(orchPath, 'utf-8');
-      const match = orchContent.match(/(## Catalogo de Productos[\s\S]*?```json\s*\n)([\s\S]*?)(\n```)/);
-      if (match) orchestratorCatalogBackup = match[2];
+    const agentProductosPath = path.join(agentsDir, 'src', 'productos.json');
+    if (await fsExtra.pathExists(agentProductosPath)) {
+      agentSrcBackup = await fsExtra.readFile(agentProductosPath, 'utf-8');
     }
   }
 
@@ -460,17 +440,11 @@ export async function installAssets({ assistant, scope, preserveUserConfig = fal
         }
       }
 
-      // Restore orchestrator catalog section
-      if (orchestratorCatalogBackup !== null) {
-        const orchPath = path.join(agentsDir, 'tba-orchestrator.md');
-        const newOrchContent = await fsExtra.readFile(orchPath, 'utf-8');
-        const restored = newOrchContent.replace(
-          /(## Catalogo de Productos[\s\S]*?```json\s*\n)([\s\S]*?)(\n```)/,
-          '$1' + orchestratorCatalogBackup + '\n$3'
-        );
-        if (restored !== newOrchContent) {
-          await fsExtra.writeFile(orchPath, restored, 'utf-8');
-        }
+      // Restore agentsDir/src/productos.json
+      if (agentSrcBackup !== null) {
+        const agentProductosPath = path.join(agentsDir, 'src', 'productos.json');
+        await fsExtra.ensureDir(path.dirname(agentProductosPath));
+        await fsExtra.writeFile(agentProductosPath, agentSrcBackup, 'utf-8');
       }
     }
 

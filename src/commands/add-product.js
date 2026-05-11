@@ -61,7 +61,9 @@ export async function addProduct() {
   clack.note(
     `productos.json actualizado en:\n` +
     `  ${skillsDir}/create-azure-workitems/config/productos.json\n\n` +
-    `Catálogo en tba-orchestrator.md también actualizado.`,
+    `Catálogo de productos actualizado en:\n` +
+    `  ${agentsDir}/src/productos.json\n\n` +
+    `El orquestador leerá este archivo en tiempo de ejecución.`,
     'Archivos modificados'
   );
 
