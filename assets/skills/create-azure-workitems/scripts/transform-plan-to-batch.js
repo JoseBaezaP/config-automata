@@ -244,9 +244,28 @@ function transform(planFilePath) {
         descripcionHtml += `<p class="editor-paragraph"><strong class="editor-text-bold">Quiero</strong> ${line.replace(/^quiero\s*/i, '')}</p>`;
       } else if (line.toLowerCase().startsWith('para')) {
         descripcionHtml += `<p class="editor-paragraph"><strong class="editor-text-bold">Para</strong> ${line.replace(/^para\s*/i, '')}</p>`;
-      } else {
+      } else if (line.trim()) {
         descripcionHtml += `<p class="editor-paragraph">${line}</p>`;
       }
+    }
+
+    // Fallback: cuando el plan es compacto y no incluye descripcion,
+    // construirla desde las descripciones de los elementos del grupo en iniciativa.json
+    if (!descripcionHtml && fs.existsSync(iniciativaPath)) {
+      try {
+        const inic = JSON.parse(fs.readFileSync(iniciativaPath, 'utf8'));
+        const grupo = (inic.grupos || []).find(g => g.id === us.grupoRef);
+        if (grupo) {
+          const elemDescs = (inic.elementos || [])
+            .filter(e => (grupo.elementos || []).includes(e.id) && e.descripcion)
+            .map(e => e.descripcion);
+          if (elemDescs.length > 0) {
+            descripcionHtml = elemDescs.map(d => `<p class="editor-paragraph">${d}</p>`).join('');
+          } else {
+            descripcionHtml = `<p class="editor-paragraph">${grupo.nombre || us.titulo}</p>`;
+          }
+        }
+      } catch (e) { /* silently skip */ }
     }
 
     // Recopilar archivos de este US desde implementationOrder (solo aplica a planes con codigo)

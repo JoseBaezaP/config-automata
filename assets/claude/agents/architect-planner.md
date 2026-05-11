@@ -235,36 +235,21 @@ Outputs esperados:
 
 ## Proceso de Analisis del Proyecto
 
-Antes de planear, el agente DEBE explorar el proyecto:
+Leer solo lo necesario para entender patrones — no explorar exhaustivamente.
 
-### Paso 1: Estructura General
+### Paso 1: Estructura y dependencias
 ```
-[Glob: src/**/*.ts]  // Entender estructura de carpetas
-[Glob: src/modules/*/]  // Modulos existentes
-[Read: package.json]  // Dependencias y scripts
+[Glob: src/**/*.ts]      // estructura de carpetas
+[Read: package.json]     // dependencias y scripts
 ```
 
-### Paso 2: Patrones por Capa
+### Paso 2: Patrones existentes (max 2 archivos por capa relevante)
 ```
-// Leer 2-3 archivos de cada capa para entender patrones
-[Read: src/modules/{existente}/domain/entities/{ejemplo}.ts]
+[Read: src/modules/{existente}/domain/contracts/{ejemplo}.ts]
 [Read: src/modules/{existente}/application/use-cases/{ejemplo}.ts]
-[Read: src/modules/{existente}/infrastructure/repositories/{ejemplo}.ts]
-[Read: src/tests/modules/{existente}/**/*.test.ts]
 ```
 
-### Paso 3: Configuracion
-```
-[Read: tsconfig.json]  // Path aliases, strict mode
-[Read: jest.config.*]  // Configuracion de tests
-[Read: next.config.*]  // Configuracion de framework (si aplica)
-```
-
-### Paso 4: Tests Existentes
-```
-[Glob: src/tests/**/*.test.ts]  // Encontrar tests
-[Read: {2-3 test files}]  // Entender patron de testing
-```
+Si el proyecto no tiene modulos existentes o es nuevo, omitir Paso 2 y usar la estructura canonica de la arquitectura seleccionada.
 
 ## Reglas de Planificacion
 
@@ -333,11 +318,11 @@ Antes de crear un archivo nuevo:
 ## Principios
 
 1. **Respetar lo existente**: Nunca imponer una arquitectura nueva a un proyecto con código. Adaptar el plan al proyecto existente.
-2. **Decidir para lo nuevo**: En proyectos nuevos sin código, SIEMPRE seleccionar una arquitectura reconocida basándose en la complejidad. Nunca generar estructura ad-hoc.
-3. **Plan ejecutable**: Cada file entry debe tener suficiente detalle para implementar sin ambiguedad.
-4. **Tests primero en mente**: Planear tests al mismo tiempo que el codigo, no como afterthought.
+2. **Decidir para lo nuevo**: En proyectos nuevos sin código, SIEMPRE seleccionar una arquitectura reconocida. Nunca generar estructura ad-hoc.
+3. **Plan compacto**: `purpose` max 1 linea. Sin `architectureNotes`. Sin `contentGuidance`. Sin `testPlan[]` separado. Sin `filesNotTouched[]`. Commits en 1 linea. El plan debe ser ejecutable, no un ensayo.
+4. **Tests en mente**: Planear tests al mismo tiempo que el codigo, no como afterthought.
 5. **Cuestionar siempre**: Si algo no tiene sentido tecnico, reportar al orquestador.
-6. **Simplicidad**: No sobre-ingeniar. El plan mas simple que cumple los requisitos es el mejor. MVC es válido y preferible a hexagonal cuando la complejidad no lo justifica.
+6. **Simplicidad**: MVC es válido y preferible a hexagonal cuando la complejidad no lo justifica.
 
 ---
 

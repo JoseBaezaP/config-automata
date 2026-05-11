@@ -59,11 +59,10 @@ Para cada grupo aprobado en `iniciativa.json` (donde `confianza >= 0.85` y `apro
    - `id`: "US-{NN}" secuencial
    - `grupoRef`: ID del grupo (ej: "GRUPO-001")
    - `titulo`: `grupo.nombre`
-   - `descripcion`: Sintetizar "Como/Quiero/Para" desde las descripciones de los elementos del grupo
-   - `criteriosAceptacion`: Consolidar criterios de todos los elementos del grupo
+   - `criteriosAceptacion`: Consolidar criterios de todos los elementos del grupo (max 5 bullets, concisos)
    - `escenariosPrueba`: IDs de los escenarios Gherkin del grupo
-   - `tecnologias`: Derivar de `architecture-constraints.json → techStack`
-   - `apisInvolucradas`: Extraer de `elementos[].notasTecnicas` los endpoints mencionados
+
+   **NO incluir**: `descripcion` (Como/Quiero/Para), `tecnologias`, `apisInvolucradas` — ya están en `iniciativa.json` y no deben duplicarse aqui.
 
 2. Cada user story representa una unidad funcional completa que se implementa como un conjunto de archivos.
 
@@ -130,13 +129,11 @@ Si `architectureType` es `"unknown"` (proyecto nuevo), usar las fases de la arqu
 
 Para cada archivo de implementacion:
 
-1. Determinar el archivo de test segun `testingRules.testLocation`
-2. Mapear escenarios Gherkin de `iniciativa.json → grupos[].escenariosPrueba[]` a test cases:
-   - `Dado que...` → setup/arrange
-   - `Cuando...` → act
-   - `Entonces...` → assert
-3. Determinar que mocks se necesitan segun `testingRules.patterns`
-4. Verificar si existen tests similares en el proyecto para copiar patrones
+1. Asignar `testFile` en la entry del archivo (ruta al archivo de test)
+2. Mapear escenarios Gherkin del grupo a test cases en el archivo de tests de la fase 6
+3. Determinar mocks necesarios segun `testingRules.patterns`
+
+**NO generar `testPlan[]` como seccion separada** — la informacion de tests vive en las entries de archivos (fase 6 de `implementationOrder`) y en el campo `testFile` de cada archivo de implementacion.
 
 ### 7. Planear Commits
 
@@ -270,6 +267,22 @@ Siempre con prefijo entre corchetes que indica el tipo:
 
 ---
 
+## Reglas de Plan Compacto
+
+**El plan debe ser lo mas conciso posible. El implementador no necesita prosa — necesita rutas, acciones y dependencias.**
+
+| Campo | Regla |
+|-------|-------|
+| `userStories[].criteriosAceptacion` | Max 5 bullets, una linea cada uno |
+| `implementationOrder[].files[].purpose` | Max 1 linea (15 palabras) |
+| `implementationOrder[].files[].architectureNotes` | **PROHIBIDO** — eliminar este campo |
+| `implementationOrder[].files[].contentGuidance` | **PROHIBIDO** — eliminar este campo |
+| `testPlan[]` | **PROHIBIDO como seccion separada** — usar `testFile` en cada archivo |
+| `commitPlan[].message` | Una sola linea: `"type(scope): descripcion"`. Sin cuerpo multi-linea. |
+| `summary` | Solo conteos numericos — sin `phasesOrdered`, `criticalDecisions`, `notes` |
+| `filesNotTouched[]` | **PROHIBIDO** — omitir esta seccion |
+| `warnings[]` | Max 1 oracion cada uno |
+
 ## Estructura del JSON de Salida (Modo con Codigo)
 
 ```json
@@ -277,22 +290,18 @@ Siempre con prefijo entre corchetes que indica el tipo:
   "iniciativa": "consulta-tienda-por-cp",
   "branch": "feature/consulta-tienda-por-cp",
   "detectedArchitecture": "hexagonal",
+  "planningMode": "with-code",
+  "includeTests": true,
   "totalFiles": 8,
   "totalTests": 4,
-  "totalCommits": 4,
+  "totalCommits": 2,
 
-  // Solo presente cuando isNewProject === true (architectureType era "unknown")
   "architectureDecision": {
     "isNewProject": true,
     "selected": "mvc",
-    "reason": "Proyecto nuevo. Score: 6/12. 3 entidades, 4 HUs, 0 integraciones externas, 5 reglas de negocio.",
+    "reason": "Score 6/12: 3 entidades, 4 HUs, 0 integraciones, 5 reglas.",
     "complexityScore": 6,
-    "complexityBreakdown": {
-      "entities": 2,
-      "hus": 2,
-      "integrations": 0,
-      "businessRules": 2
-    },
+    "complexityBreakdown": { "entities": 2, "hus": 2, "integrations": 0, "businessRules": 2 },
     "skillUsed": "built-in",
     "alternativesConsidered": ["screaming"]
   },
@@ -302,17 +311,12 @@ Siempre con prefijo entre corchetes que indica el tipo:
       "id": "US-001",
       "grupoRef": "GRUPO-001",
       "titulo": "Busqueda de tienda por codigo postal",
-      "descripcion": "Como liveops\nQuiero ingresar un CP\nPara conocer la tienda que atiende un determinado codigo postal",
       "criteriosAceptacion": [
-        "Si existe al menos una tienda activa con cobertura, se muestra la tienda asignada",
-        "Si no existe cobertura, mostrar 'No existe tienda que atienda este CP'",
-        "El mapa centra un marcador en las coordenadas de la tienda",
-        "La direccion se muestra como: Calle + Numero, Colonia, Ciudad, Estado",
-        "Los servicios se presentan como etiquetas (Delivery / Pick Up)"
+        "Muestra tienda asignada si hay cobertura activa",
+        "Muestra mensaje si no hay cobertura",
+        "Mapa centra marcador en coordenadas de la tienda"
       ],
-      "escenariosPrueba": ["ESC-001", "ESC-002", "ESC-003", "ESC-004", "ESC-005"],
-      "tecnologias": ["React 19", "Next.js 15", "TypeScript"],
-      "apisInvolucradas": ["GET /stores?zipCode=XXXXX"]
+      "escenariosPrueba": ["ESC-001", "ESC-002", "ESC-003"]
     }
   ],
 
@@ -320,34 +324,19 @@ Siempre con prefijo entre corchetes que indica el tipo:
     {
       "phase": 1,
       "phaseName": "Domain Layer",
-      "description": "Interfaces, value objects y DTOs para consulta de tienda por CP",
       "files": [
         {
           "id": "FILE-001",
           "action": "create",
           "path": "src/modules/stores/domain/contracts/store-lookup.interface.ts",
           "layer": "domain",
-          "purpose": "Interface IStoreLookupRepository para consulta de tiendas por CP",
+          "purpose": "IStoreLookupRepository con findByZipCode(cp: string): Promise<IStoreDTO[]>",
           "usReference": "US-001",
           "dependencies": [],
           "estimatedComplexity": "low",
-          "architectureNotes": "I-prefix obligatorio. Define metodo findByZipCode(cp: string): Promise<IStoreDTO[]>",
-          "testFile": "FILE-T01",
-          "contentGuidance": "Interface con metodo findByZipCode. Incluir IStoreDTO con campos: id, name, active, location, deliveryType, zipCodeCoverage"
+          "testFile": "FILE-T01"
         }
       ]
-    }
-  ],
-
-  "testPlan": [
-    {
-      "id": "FILE-T01",
-      "testFile": "src/tests/modules/stores/domain/value-objects/zip-code.test.ts",
-      "sourceFile": "FILE-002",
-      "testType": "unit",
-      "gherkinScenarios": ["ESC-004"],
-      "mockDependencies": [],
-      "description": "Tests puros de dominio: validacion formato CP 5 digitos"
     }
   ],
 
@@ -356,11 +345,23 @@ Siempre con prefijo entre corchetes que indica el tipo:
       "commitId": "COMMIT-001",
       "type": "feat",
       "scope": "stores",
-      "message": "feat(stores): add domain layer for store lookup by zip code\n\nCreate IStoreLookupRepository interface, IStoreDTO, and ZipCode\nvalue object with 5-digit validation.\n\nRefs: US-001\nInitiative: consulta-tienda-por-cp",
+      "message": "feat(stores): add domain layer for store lookup by zip code",
       "files": ["FILE-001", "FILE-002"],
       "afterPhase": 1
     }
-  ]
+  ],
+
+  "warnings": ["INVENTORY_USERNAME/PASSWORD son secretos server-side, nunca usar NEXT_PUBLIC_."],
+
+  "summary": {
+    "totalFiles": 8,
+    "newFiles": 6,
+    "modifiedFiles": 2,
+    "deletedFiles": 0,
+    "totalTests": 4,
+    "totalCommits": 2,
+    "architecture": "hexagonal"
+  }
 }
 ```
 

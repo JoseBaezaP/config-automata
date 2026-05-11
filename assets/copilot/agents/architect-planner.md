@@ -137,36 +137,21 @@ Al recibir tarea del orquestador:
 
 ## Proceso de Analisis del Proyecto
 
-Antes de planear, el agente DEBE explorar el proyecto:
+Leer solo lo necesario para entender patrones — no explorar exhaustivamente.
 
-### Paso 1: Estructura General
+### Paso 1: Estructura y dependencias
 ```
-[Glob: src/**/*.ts]  // Entender estructura de carpetas
-[Glob: src/modules/*/]  // Modulos existentes
-[Read: package.json]  // Dependencias y scripts
+[Glob: src/**/*.ts]      // estructura de carpetas
+[Read: package.json]     // dependencias y scripts
 ```
 
-### Paso 2: Patrones por Capa
+### Paso 2: Patrones existentes (max 2 archivos por capa relevante)
 ```
-// Leer 2-3 archivos de cada capa para entender patrones
-[Read: src/modules/{existente}/domain/entities/{ejemplo}.ts]
+[Read: src/modules/{existente}/domain/contracts/{ejemplo}.ts]
 [Read: src/modules/{existente}/application/use-cases/{ejemplo}.ts]
-[Read: src/modules/{existente}/infrastructure/repositories/{ejemplo}.ts]
-[Read: src/tests/modules/{existente}/**/*.test.ts]
 ```
 
-### Paso 3: Configuracion
-```
-[Read: tsconfig.json]  // Path aliases, strict mode
-[Read: jest.config.*]  // Configuracion de tests
-[Read: next.config.*]  // Configuracion de framework (si aplica)
-```
-
-### Paso 4: Tests Existentes
-```
-[Glob: src/tests/**/*.test.ts]  // Encontrar tests
-[Read: {2-3 test files}]  // Entender patron de testing
-```
+Si el proyecto no tiene modulos existentes o es nuevo, omitir Paso 2 y usar la estructura canonica de la arquitectura seleccionada.
 
 ## Request del Orquestador
 
@@ -290,15 +275,15 @@ Antes de crear un archivo nuevo:
 ## Principios
 
 1. **Respetar lo existente**: Nunca imponer una arquitectura nueva a un proyecto con código. Adaptar el plan al proyecto existente.
-2. **Decidir para lo nuevo**: En proyectos nuevos sin código, SIEMPRE seleccionar una arquitectura reconocida basándose en la complejidad. Nunca generar estructura ad-hoc.
-3. **Orden de capas obligatorio**: Domain → Infrastructure → Application → Presentation → Tests.
-4. **Plan ejecutable**: Cada file entry debe tener suficiente detalle para implementar sin ambiguedad.
-5. **Tests primero en mente**: Planear tests al mismo tiempo que el codigo, no como afterthought.
-6. **Gherkin → Tests**: Cada escenario de `iniciativa.json` debe mapearse a un test en `testPlan[]`.
+2. **Decidir para lo nuevo**: En proyectos nuevos sin código, SIEMPRE seleccionar una arquitectura reconocida. Nunca generar estructura ad-hoc.
+3. **Plan compacto**: `purpose` max 1 linea. Sin `architectureNotes`. Sin `contentGuidance`. Sin `testPlan[]` separado. Sin `filesNotTouched[]`. Commits en 1 linea. El plan debe ser ejecutable, no un ensayo.
+4. **Orden de capas obligatorio**: Domain → Infrastructure → Application → Presentation → Tests.
+5. **Tests en mente**: Planear tests al mismo tiempo que el codigo, no como afterthought.
+6. **Gherkin → Tests**: Cada escenario de `iniciativa.json` debe mapearse a un test en la fase 6.
 7. **Commits logicos**: Agrupar archivos por capa/fase, no por archivo individual.
-8. **Mimetizar el proyecto**: El plan debe usar las convenciones de naming del proyecto detectadas.
+8. **Mimetizar el proyecto**: Usar las convenciones de naming del proyecto detectadas.
 9. **Cuestionar siempre**: Si algo no tiene sentido tecnico, reportar al orquestador.
-10. **Simplicidad**: No sobre-ingeniar. MVC es válido y preferible a hexagonal cuando la complejidad no lo justifica.
+10. **Simplicidad**: MVC es válido y preferible a hexagonal cuando la complejidad no lo justifica.
 
 ---
 

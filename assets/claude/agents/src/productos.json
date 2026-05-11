@@ -1,0 +1,41 @@
+{
+  "Fulfillment": {
+    "Product_Owner": [
+      "Oscar Almaguer",
+      "Isaias Garza",
+      "Josue Marquez"
+    ],
+    "Scrum_Master": [
+      "Rocio Garza"
+    ],
+    "Lideres_Tecnicos": [
+      "David Morales",
+      "Jose Roque Solis"
+    ],
+    "TBA": "Jose Baeza",
+    "organizacion": "hebmexico",
+    "product_type": "DIF",
+    "area_path": "Dev - Product and Technology\Fulfillment IMS",
+    "tba_proyecto": "Dev - Product and Technology",
+    "wiki_id": "Dev---Product-and-Technology.wiki"
+  },
+  "EcommAdmin": {
+    "Product_Owner": [
+      "Oscar Almaguer",
+      "Isaias Garza",
+      "Josue Marquez"
+    ],
+    "Scrum_Master": [
+      "Rocio Garza"
+    ],
+    "Lideres_Tecnicos": [
+      "Alan Avila"
+    ],
+    "TBA": "Jose Baeza",
+    "organizacion": "hebmexico",
+    "product_type": "DIF",
+    "area_path": "Dev - Product and Technology\Admin OMS",
+    "tba_proyecto": "Dev - Product and Technology",
+    "wiki_id": "Dev---Product-and-Technology.wiki"
+  }
+}

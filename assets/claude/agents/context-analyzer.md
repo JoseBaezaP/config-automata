@@ -27,14 +27,16 @@ Agente especializado en análisis de contexto de iniciativas y proyectos.
 - Input: Ruta del proyecto, nombre iniciativa
 - Output: `tba-output/{nombre}/architecture-constraints.json` (incluye projectContext)
 - Proceso: Analizar proyecto completo (tech stack, APIs, BD, integraciones, testing) + detectar skills de arquitectura, inferir patrones, extraer restricciones
-- Trigger: Despues de analyze-initiative
 
 ## Ejecución
 
-Al recibir una tarea del orquestador, invoca el skill correspondiente usando el tool `Skill`:
+Ambos skills son **independientes** — no comparten inputs ni outputs. Invocarlos en el **mismo turn** para que corran en paralelo:
 
-- Para análisis de iniciativa: `Skill(skill: "analyze-initiative")`
-- Para análisis de proyecto + arquitectura: `Skill(skill: "detect-architecture")`
+```
+Skill("analyze-initiative")  +  Skill("detect-architecture")  ← mismo mensaje
+```
+
+Si el orquestador indica que **no hay proyecto de codigo**, ejecutar solo `analyze-initiative`.
 
 ## Request del Orquestador
 
@@ -49,7 +51,8 @@ Input:
 - Flujo: automata
 - Ruta del proyecto: {ruta}
 
-Ejecuta: analyze-initiative, detect-architecture
+Ejecuta en paralelo: analyze-initiative + detect-architecture
+(Si no hay proyecto de codigo: solo analyze-initiative)
 
 Outputs esperados:
 - iniciativa.json (requerimientos + Gherkin)
